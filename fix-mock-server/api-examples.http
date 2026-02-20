@@ -1,0 +1,83 @@
+### FixMock Standalone Server API Examples
+
+### 1. Health Check
+GET http://localhost:9090/health
+
+### 2. Register a Single Stub (NOS -> ER)
+POST http://localhost:9090/__admin/stubs
+Content-Type: application/json
+
+{
+  "pattern": {
+    "msgType": "D",
+    "tags": {
+      "55": "AAPL"
+    }
+  },
+  "response": {
+    "type": "STATIC_ER",
+    "orderId": "OID-123",
+    "execId": "E-456",
+    "execType": "0",
+    "ordStatus": "0",
+    "side": "1",
+    "leavesQty": 100,
+    "cumQty": 0,
+    "avgPx": 0
+  }
+}
+
+### 3. Register Multiple Stubs (Batch)
+POST http://localhost:9090/__admin/stubs
+Content-Type: application/json
+
+[
+  {
+    "pattern": { "msgType": "D", "tags": { "55": "MSFT" } },
+    "response": { "type": "STATIC_ER", "execType": "0", "ordStatus": "0" }
+  },
+  {
+    "pattern": { "msgType": "F" },
+    "response": { "type": "STATIC_ER", "execType": "4", "ordStatus": "4" }
+  }
+]
+
+### 4. Verify a Message Received (Exactly 1 NOS for AAPL)
+POST http://localhost:9090/__admin/verify
+Content-Type: application/json
+
+{
+  "countType": "EXACTLY",
+  "count": 1,
+  "pattern": {
+    "msgType": "D",
+    "tags": {
+      "55": "AAPL"
+    }
+  }
+}
+
+### 5. Verify at least 1 message received within the last 10 seconds
+POST http://localhost:9090/__admin/verify
+Content-Type: application/json
+
+{
+  "countType": "AT_LEAST",
+  "count": 1,
+  "withinMillis": 10000,
+  "pattern": {
+    "msgType": "D"
+  }
+}
+
+### 6. List all journaled requests
+GET http://localhost:9090/__admin/requests
+
+### 7. Filter journaled requests by session and msgType
+GET http://localhost:9090/__admin/requests?msgType=D&sessionId=FIX.4.4:BROKER->CLIENT
+
+### 8. Export recorded stubs (from Recording Mode)
+GET http://localhost:9090/__admin/recordings
+
+### 9. Reset server (Clear stubs and journal)
+DELETE http://localhost:9090/__admin/reset

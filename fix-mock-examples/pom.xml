@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.allune</groupId>
+		<artifactId>fix-mock</artifactId>
+		<version>0.1.0-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>fix-mock-examples</artifactId>
+	<name>Fix Mock :: Examples</name>
+	<packaging>jar</packaging>
+
+	<properties>
+		<junit.version>5.10.2</junit.version>
+		<quickfixj.version>2.3.1</quickfixj.version>
+		<slf4j.version>2.0.13</slf4j.version>
+		<maven.deploy.skip>true</maven.deploy.skip>
+		<gpg.skip>true</gpg.skip>
+		<maven.javadoc.skip>true</maven.javadoc.skip>
+		<maven.source.skip>true</maven.source.skip>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.allune</groupId>
+			<artifactId>fix-mock-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- QuickFIX/J runtime for acceptor/initiator in examples -->
+		<dependency>
+			<groupId>org.quickfixj</groupId>
+			<artifactId>quickfixj-core</artifactId>
+			<version>${quickfixj.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.quickfixj</groupId>
+			<artifactId>quickfixj-messages-fix44</artifactId>
+			<version>${quickfixj.version}</version>
+		</dependency>
+
+		<!-- Simple logging for tests -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>${slf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- JUnit 5 for tests -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.3.0</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>io.allune.fixmock.examples.ExampleApp</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<configuration>
+					<mainClass>io.allune.fixmock.examples.ExampleApp</mainClass>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
