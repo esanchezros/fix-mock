@@ -31,7 +31,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>io.allune</groupId>
     <artifactId>fix-mock-core</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -42,7 +42,7 @@ For JUnit 5 support:
 <dependency>
     <groupId>io.allune</groupId>
     <artifactId>fix-mock-junit</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
