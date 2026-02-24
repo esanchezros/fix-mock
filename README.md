@@ -227,15 +227,15 @@ class MyFixTest {
             .beginString("FIX.4.4")
             .senderCompId("BROKER")
             .targetCompId("CLIENT")
-            .acceptorPort(9880)
+            .acceptorPort(9899)
             .build()
     );
 
     @Test
     void testFlow() {
         fixMock.stubFor(when(newOrderSingle()).willReturn(respondWith(er)));
-        
-        // Connect your client to 9880...
+
+        // Connect your client to 9899...
         
         fixMock.verify(FixMock.exactly(1), FixMock.newOrderSingle());
     }
@@ -248,22 +248,18 @@ Run FixMock as a standalone service and control it via HTTP.
 
 ### Quick Start with Docker
 
-```bash
-docker run -p 9090:9090 -p 9899:9899 allune/fix-mock-server
-```
-
-To build the Docker image locally:
+Build and run the image locally from the project root:
 
 ```bash
-# Build the project first
+# Build the project (run from project root)
 mvn clean package -DskipTests
 
 # Build Docker image
 cd fix-mock-server
-docker build -t fix-mock-server .
+docker build -t allune/fix-mock-server .
 
 # Run it
-docker run -p 9090:9090 -p 9899:9899 fix-mock-server
+docker run -p 9090:9090 -p 9899:9899 allune/fix-mock-server
 ```
 
 ### Quick REST Examples
