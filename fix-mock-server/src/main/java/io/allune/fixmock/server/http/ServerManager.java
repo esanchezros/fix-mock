@@ -54,7 +54,7 @@ class ServerManager {
 			server = new SimpleFixMockServer(b.build());
 			server.start();
 			log.info("FixMock server started: beginString={}, {}->{}, port={}",
-					props.getBeginString(), props.getSenderCompId(), props.getTargetCompId(), props.getAcceptorPort());
+					props.getBeginString(), props.getSenderCompId(), props.getTargetCompId(), server.getPort());
 		} catch (Exception e) {
 			log.error("Failed to start FixMock server", e);
 			throw new IllegalStateException("Failed to start FixMock server", e);
@@ -72,6 +72,11 @@ class ServerManager {
 				log.warn("Error stopping FixMock server", e);
 			}
 		}
+	}
+
+	int boundPort() {
+		FixMockServer s = server;
+		return s == null || !s.isRunning() ? -1 : s.getPort();
 	}
 
 	boolean isRunning() {

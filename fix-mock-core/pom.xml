@@ -20,19 +20,22 @@
 		<dependency>
 			<groupId>org.quickfixj</groupId>
 			<artifactId>quickfixj-core</artifactId>
-			<version>2.3.1</version>
+			<version>${quickfixj.version}</version>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.quickfixj</groupId>
-			<artifactId>quickfixj-messages-fix44</artifactId>
-			<version>2.3.1</version>
+			<artifactId>quickfixj-messages-all</artifactId>
+			<version>${quickfixj.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- Logging API -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>2.0.13</version>
+			<version>${slf4j.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- Test dependencies -->
@@ -54,6 +57,88 @@
 			<version>2.0.13</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>io.allune</groupId>
+			<artifactId>assertj-quickfixj</artifactId>
+			<version>${assertj-quickfixj.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
+			<version>${awaitility.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>check-coverage</id>
+						<goals><goal>check</goal></goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>api-compatibility</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.siom79.japicmp</groupId>
+						<artifactId>japicmp-maven-plugin</artifactId>
+						<version>0.26.5</version>
+						<configuration>
+							<oldVersion>
+								<dependency>
+									<groupId>io.allune</groupId>
+									<artifactId>fix-mock-core</artifactId>
+									<version>0.1.0</version>
+									<type>jar</type>
+								</dependency>
+							</oldVersion>
+							<newVersion>
+								<file><path>${project.build.directory}/${project.build.finalName}.jar</path></file>
+							</newVersion>
+							<parameter>
+								<accessModifier>public</accessModifier>
+								<onlyModified>true</onlyModified>
+								<breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+								<breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
+								<ignoreMissingOptionalDependency>true</ignoreMissingOptionalDependency>
+							</parameter>
+						</configuration>
+						<executions>
+							<execution>
+								<phase>verify</phase>
+								<goals><goal>cmp</goal></goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

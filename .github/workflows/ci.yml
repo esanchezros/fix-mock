@@ -5,14 +5,24 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     strategy:
       matrix:
-        java: [ '17', '21' ]
+        include:
+          - java: "17"
+            quickfixj: "2.3.2"
+          - java: "17"
+            quickfixj: "3.0.2"
+          - java: "25"
+            quickfixj: "3.0.2"
 
     steps:
     - uses: actions/checkout@v4
@@ -24,14 +34,28 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Build and Test
-      run: mvn -B clean verify
+    - name: Pull-request smoke with QuickFIX/J ${{ matrix.quickfixj }}
+      if: github.event_name == 'pull_request'
+      run: mvn --batch-mode clean verify -pl fix-mock-junit,fix-mock-server -am -Dquickfixj.version=${{ matrix.quickfixj }}
+
+    - name: Full verification with QuickFIX/J ${{ matrix.quickfixj }}
+      if: github.event_name != 'pull_request'
+      run: mvn --batch-mode clean verify -Dquickfixj.version=${{ matrix.quickfixj }}
+
+    - name: Verify packaged-artifact consumer
+      run: |
+        mvn --batch-mode -pl fix-mock-core -am install -DskipTests -Djacoco.skip=true -Dquickfixj.version=${{ matrix.quickfixj }}
+        mvn --batch-mode -f consumer-pom.xml clean test -Dquickfixj.version=${{ matrix.quickfixj }}
+
+    - name: Check public API compatibility with 0.1.0
+      if: matrix.java == '25' && matrix.quickfixj == '3.0.2'
+      run: mvn --batch-mode -pl fix-mock-core -Papi-compatibility verify -DskipTests -Djacoco.skip=true
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results-java-${{ matrix.java }}
+        name: test-results-java-${{ matrix.java }}-quickfixj-${{ matrix.quickfixj }}
         path: |
           **/target/surefire-reports/
           **/target/failsafe-reports/

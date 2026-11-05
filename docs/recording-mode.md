@@ -11,7 +11,6 @@ FixMockServerOptions options = FixMockServerOptions.builder()
     .beginString("FIX.4.4")
     .senderCompId("BROKER")
     .targetCompId("CLIENT")
-    .acceptorPort(9899)
     .recordMode(RecordMode.CAPTURE) // Enable capture
     .build();
 

@@ -28,12 +28,13 @@ class HealthController {
 		this.serverManager = serverManager;
 	}
 
-	@GetMapping("/health")
+	@GetMapping({"/health", "/ready"})
 	public ResponseEntity<Map<String, Object>> health() {
 		Map<String, Object> body = new HashMap<>();
 		boolean running = serverManager.isRunning();
 		body.put("status", running ? "UP" : "DOWN");
 		body.put("running", running);
+		body.put("fixPort", serverManager.boundPort());
 		return ResponseEntity.ok(body);
 	}
 }

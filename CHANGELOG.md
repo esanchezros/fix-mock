@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Ephemeral FIX acceptor ports by default, with selected ports exposed through embedded and JUnit APIs.
+- Per-session QuickFIX/J setting injection, readiness/logon/logout/message waits, reset, disconnect, graceful and forced shutdown.
+- JUnit `PER_CLASS` and `PER_TEST` lifecycles plus parameter injection.
+- Peer-side FIX 4.4 transport tests in both initiator/acceptor directions using AssertJ QuickFIX/J 1.0.0.
+- CI lanes for Java 17 and 25 with QuickFIX/J 2.3.2 and 3.0.2.
+- A standalone packaged-artifact consumer fixture that runs the initiator-to-peer transport smoke against both QuickFIX/J lines.
+
+### Changed
+
+- QuickFIX/J dependencies are optional so applications select their supported engine line.
+- Recorded state uses concurrent collections and returns immutable snapshots or defensive `Message` values.
+- Delayed stub responses use a managed scheduler rather than blocking QuickFIX/J callback threads.
+- Dependency convergence and forked-test timeouts are enforced by the canonical `mvn --batch-mode verify` build.
+- Core line coverage is held at 80%, and the `api-compatibility` profile checks public binary and source compatibility against 0.1.0.
+
+### Migration
+
+- Acceptors now default to port `0`; read the selected port with `FixMockServer.getPort()` or `FixMockExtension.port()`. Set an explicit port only when required.
+- Consumers must declare `quickfixj-core` and the required message module, normally `quickfixj-messages-all`, in test scope.
+- Java 17 remains the minimum. Supported engine baselines are QuickFIX/J 2.3.2 and 3.0.2.
+
+### Release checklist
+
+- Run clean verification on both QuickFIX/J lines and inspect Surefire/Failsafe reports.
+- Build with the `release` profile and inspect binary, source, Javadoc, POM and signatures.
+- Verify the staged artifacts and dependencies resolve using Maven Central only.
+- Run the packaged-consumer gate; run the Spring Boot starter interoperability gate when that deferred fixture lands.
+- Obtain explicit maintainer approval before any version change, tag, push, Central upload/publication or GitHub release.
+
+
 ## [0.1.0] - 2026-02-19
 
 ### Added

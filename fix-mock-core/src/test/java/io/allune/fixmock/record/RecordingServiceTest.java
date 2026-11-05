@@ -105,6 +105,24 @@ class RecordingServiceTest {
 
 		assertTrue(service.getPairs().isEmpty());
 	}
+	@Test
+	void shouldPairBurstRequestsInFifoOrder() {
+		FixJournalEntry inbound = new FixJournalEntry(0, Direction.APP, "sess1", "FIX.4.4", "D", "S", "T", "", null, true);
+		FixJournalEntry outbound = new FixJournalEntry(0, Direction.APP, "sess1", "FIX.4.4", "8", "T", "S", "", null, false);
+		Message firstRequest = new Message();
+		Message secondRequest = new Message();
+		Message firstResponse = new Message();
+		Message secondResponse = new Message();
+
+		service.recordInbound(inbound, firstRequest);
+		service.recordInbound(inbound, secondRequest);
+		service.recordOutbound(outbound, firstResponse);
+		service.recordOutbound(outbound, secondResponse);
+
+		assertSame(firstRequest, service.getPairs().get(0).getRequest());
+		assertSame(secondRequest, service.getPairs().get(1).getRequest());
+	}
+
 
 	@Test
 	void shouldNotCreatePairForUnmatchedOutbound() {

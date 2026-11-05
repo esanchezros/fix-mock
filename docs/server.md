@@ -10,9 +10,9 @@ The `fix-mock-server` module provides a Spring Boot application that wraps a `Fi
    ```
 2. Run the server:
    ```bash
-   java -jar fix-mock-server/target/fix-mock-server-0.1.0-SNAPSHOT.jar
+   java -jar fix-mock-server/target/fix-mock-server-0.2.0-SNAPSHOT-exec.jar
    ```
-   By default, the REST API runs on port `9090` and the FIX acceptor on port `9899`.
+   The defaults are HTTP `9090` and FIX `9899`. Both accept `0` for ephemeral binding; `GET /ready` reports the selected FIX port and Spring logs the selected HTTP port.
 
 #### Configuration
 
@@ -22,6 +22,7 @@ Configuration is managed via `application.properties` or environment variables (
 |----------|---------|-------------|
 | `server.port` | `9090` | HTTP REST API port |
 | `fixmock.acceptorPort` | `9899` | FIX Acceptor port |
+| `server.port=0` / `SERVER_PORT=0` | unset | Bind HTTP to an ephemeral port |
 | `fixmock.beginString` | `FIX.4.4` | FIX version |
 | `fixmock.senderCompId`| `BROKER` | Server's SenderCompID |
 | `fixmock.targetCompId`| `CLIENT` | Server's TargetCompID |
@@ -29,8 +30,10 @@ Configuration is managed via `application.properties` or environment variables (
 
 #### REST API Reference
 
+The endpoints documented below are the stable public contract for the 0.2.x line. Additive fields and endpoints may be introduced compatibly; removals or semantic changes require a new major version and migration notes. Error shapes are not yet globally standardized (see release-readiness deferrals).
+
 ##### 1. Health Check
-`GET /health`
+`GET /health` or `GET /ready`
 
 Returns the status of the embedded FIX server.
 
@@ -43,7 +46,8 @@ curl http://localhost:9090/health
 ```json
 {
   "status": "UP",
-  "running": true
+  "running": true,
+  "fixPort": 49152
 }
 ```
 
@@ -166,5 +170,6 @@ curl -X DELETE http://localhost:9090/__admin/reset
 A minimal Dockerfile is available in the module root.
 ```bash
 docker build -t fix-mock-server .
-docker run -p 9090:9090 -p 9899:9899 fix-mock-server
+docker run -p 127.0.0.1::9090 -p 127.0.0.1::9899 fix-mock-server
+docker port <container-id>
 ```

@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import static io.allune.fixmock.FixMock.atLeast;
 import static io.allune.fixmock.FixMock.messageType;
 import static io.allune.fixmock.FixMock.within;
+import static io.allune.quickfixj.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -62,10 +63,11 @@ public class FixMockInitiatorModeIT {
 
 	@Test
 	void mock_as_initiator_sends_NOS_and_journals_outbound() throws Exception {
-		int port = 9910;
+		int port = 0;
 		// Start a minimal acceptor harness
 		harnessApp = new HarnessApp();
 		acceptor = startAcceptorHarness("FIX.4.4", "BROKER", "CLIENT", port, harnessApp);
+		port = boundPort((ThreadedSocketAcceptor) acceptor);
 
 		// Configure mock as INITIATOR
 		FixMockServerOptions options = FixMockServerOptions.builder()
@@ -98,14 +100,23 @@ public class FixMockInitiatorModeIT {
 		// Harness should receive it
 		Message received = harnessApp.awaitAppMessage(5, TimeUnit.SECONDS);
 		assertNotNull(received, "Harness should receive NOS");
-		assertEquals("D", received.getHeader().getString(MsgType.FIELD));
-		assertEquals(cid, received.getString(ClOrdID.FIELD));
+		assertThat(received).isNewOrderSingle().hasFieldValue(ClOrdID.FIELD, cid).hasFieldValue(Symbol.FIELD, "AAPL");
 
 		// And the mock should have journaled the outbound message
 		server.verify(atLeast(1), within(Duration.ofSeconds(5)), messageType("D"));
 	}
 
-	// --- Accepto r harness
+	private static int boundPort(ThreadedSocketAcceptor acceptor) {
+		return acceptor.getEndpoints().stream()
+				.map(org.apache.mina.core.service.IoAcceptor::getLocalAddress)
+				.filter(java.net.InetSocketAddress.class::isInstance)
+				.map(java.net.InetSocketAddress.class::cast)
+				.mapToInt(java.net.InetSocketAddress::getPort)
+				.findFirst()
+				.orElseThrow();
+	}
+
+	// --- Acceptor harness
 	private static Acceptor startAcceptorHarness(String beginString, String sender, String target, int port, Application app) throws ConfigError {
 		SessionSettings settings = new SessionSettings();
 		settings.setString(SessionFactory.SETTING_CONNECTION_TYPE, "acceptor");

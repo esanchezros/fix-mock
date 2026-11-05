@@ -32,8 +32,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static io.allune.fixmock.FixMock.*;
+import static io.allune.quickfixj.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ScenarioIntegrationTest {
@@ -80,12 +82,11 @@ class ScenarioIntegrationTest {
 						new AvgPx(150.0)
 				));
 
-		int port = 9916;
+		
 		FixMockServerOptions options = FixMockServerOptions.builder()
 				.beginString("FIX.4.4")
 				.senderCompId("MOCK")
 				.targetCompId("CLIENT")
-				.acceptorPort(port)
 				.stubMapping(pendingStub)
 				.stubMapping(filledStub)
 				.recordMode(FixMockServerOptions.RecordMode.PLAYBACK)
@@ -93,6 +94,8 @@ class ScenarioIntegrationTest {
 
 		server = new SimpleFixMockServer(options);
 		server.start();
+		int port = server.getPort();
+		assertTrue(port > 0);
 		assertTrue(server.isRunning());
 
 		// When: Client sends two orders
@@ -102,10 +105,50 @@ class ScenarioIntegrationTest {
 		List<Message> ers = app.awaitAppMessages(5, TimeUnit.SECONDS);
 
 		// Then: First ER is PENDING, second is FILL
+		Message receivedOrder = server.awaitMessage(newOrderSingle(), java.time.Duration.ofSeconds(2));
+		assertThat(receivedOrder).isNewOrderSingle().hasFieldValue(Symbol.FIELD, "AAPL");
 		assertNotNull(ers);
 		assertEquals(2, ers.size(), "Should receive two ER responses");
 		assertEquals(ExecType.PENDING_NEW, ers.get(0).getChar(ExecType.FIELD));
 		assertEquals(ExecType.FILL, ers.get(1).getChar(ExecType.FIELD));
+	}
+
+	@Test
+	void shouldStartMultipleInstancesConcurrentlyOnDynamicPorts() {
+		SimpleFixMockServer first = dynamicServer("MOCK_A", "CLIENT_A");
+		SimpleFixMockServer second = dynamicServer("MOCK_B", "CLIENT_B");
+		try {
+			java.util.concurrent.CompletableFuture<Void> firstStart = java.util.concurrent.CompletableFuture.runAsync(first::start);
+			java.util.concurrent.CompletableFuture<Void> secondStart = java.util.concurrent.CompletableFuture.runAsync(second::start);
+			java.util.concurrent.CompletableFuture.allOf(firstStart, secondStart).join();
+			assertTrue(first.getPort() > 0);
+			assertTrue(second.getPort() > 0);
+			assertNotEquals(first.getPort(), second.getPort());
+		} finally {
+			first.stop(true);
+			second.stop(true);
+		}
+	}
+
+	@Test
+	void shouldSupportRepeatedStartStopCycles() {
+		server = dynamicServer("MOCK_CYCLE", "CLIENT_CYCLE");
+		for (int i = 0; i < 5; i++) {
+			server.start();
+			assertTrue(server.awaitReady(java.time.Duration.ofSeconds(2)));
+			assertTrue(server.getPort() > 0);
+			server.stop();
+			assertTrue(!server.isRunning());
+		}
+	}
+
+	private static SimpleFixMockServer dynamicServer(String sender, String target) {
+		return new SimpleFixMockServer(FixMockServerOptions.builder()
+				.beginString("FIX.4.4")
+				.senderCompId(sender)
+				.targetCompId(target)
+				.dynamicPort()
+				.build());
 	}
 
 	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
@@ -115,7 +158,6 @@ class ScenarioIntegrationTest {
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 
@@ -171,7 +213,6 @@ class ScenarioIntegrationTest {
 					);
 					nos.set(new Symbol(symbol));
 					Session.sendToTarget(nos, sessionId);
-					Thread.sleep(200); // Give some time between orders
 				}
 			} catch (Exception ignored) {}
 		}

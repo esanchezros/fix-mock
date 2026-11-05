@@ -17,9 +17,14 @@ FixMock is a WireMock-inspired mocking library for FIX (Financial Information eX
 ---
 
 ## Requirements
+| Java | QuickFIX/J | Status |
+|---|---|---|
+| 17 or newer | 2.3.2 | Supported compatibility baseline |
+| 17 or newer | 3.0.2 | Supported and preferred baseline |
 
-- **Java 17** or higher
-- **QuickFIX/J 2.3.1** (included as transitive dependency)
+Java 17 is the minimum. CI also exercises the current LTS on QuickFIX/J 3.0.2. Other 2.3.x or 3.0.x patch releases may work, but are not release-gate claims until added to the matrix.
+
+
 
 ---
 
@@ -31,7 +36,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>io.allune</groupId>
     <artifactId>fix-mock-core</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -42,10 +47,37 @@ For JUnit 5 support:
 <dependency>
     <groupId>io.allune</groupId>
     <artifactId>fix-mock-junit</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
+
+## QuickFIX/J and AssertJ selection
+
+FixMock intentionally declares QuickFIX/J as optional. Add either `2.3.2` or `3.0.2` to the consuming test suite; this avoids changing an application engine version transitively. For the complete dictionaries, use `quickfixj-messages-all`.
+
+```xml
+<dependency>
+    <groupId>org.quickfixj</groupId>
+    <artifactId>quickfixj-core</artifactId>
+    <version>3.0.2</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.quickfixj</groupId>
+    <artifactId>quickfixj-messages-all</artifactId>
+    <version>3.0.2</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>io.allune</groupId>
+    <artifactId>assertj-quickfixj</artifactId>
+    <version>1.0.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+FixMock returns defensive `quickfix.Message` values from `getReceivedMessages()` and `awaitMessage(...)`; AssertJ QuickFIX/J can assert those values directly without a production dependency from FixMock to AssertJ.
 
 ## Quick Start (JUnit 5)
 
@@ -69,7 +101,6 @@ class FixMockQuickStartTest {
             .beginString("FIX.4.4")
             .senderCompId("BROKER")
             .targetCompId("CLIENT")
-            .acceptorPort(9899)
             .build()
     );
 
@@ -83,7 +114,7 @@ class FixMockQuickStartTest {
                 new CumQty(0), new AvgPx(0)
             ))));
 
-        // 2. Run your application code that sends a NewOrderSingle to BROKER:9899...
+        // 2. Run your application code that sends a NewOrderSingle to BROKER at `fixMock.port()`...
 
         // 3. Verify the message was received
         fixMock.verify(FixMock.exactly(1), FixMock.newOrderSingle()
@@ -92,6 +123,8 @@ class FixMockQuickStartTest {
     }
 }
 ```
+
+The acceptor binds to an ephemeral port by default. Configure the application under test with `fixMock.port()` after the extension has started. For multiple sessions, use `fixMock.port(sessionId)`.
 
 ## Full Capability Showcase
 
@@ -217,6 +250,8 @@ server.verify(FixMock.atLeast(1), FixMock.newOrderSingle()
 ```
 
 ## JUnit 5 Integration
+`FixMockExtension` defaults to a per-class lifecycle and an ephemeral acceptor port. Pass `FixMockExtension.Lifecycle.PER_TEST` for isolation per test method. It waits for startup readiness and always tears down the server. Tests can also inject `FixMockServer` or `FixMockExtension` as method parameters.
+
 
 ```java
 class MyFixTest {
@@ -227,7 +262,6 @@ class MyFixTest {
             .beginString("FIX.4.4")
             .senderCompId("BROKER")
             .targetCompId("CLIENT")
-            .acceptorPort(9899)
             .build()
     );
 
@@ -235,7 +269,7 @@ class MyFixTest {
     void testFlow() {
         fixMock.stubFor(when(newOrderSingle()).willReturn(respondWith(er)));
 
-        // Connect your client to 9899...
+        // Connect your client to fixMock.port()...
         
         fixMock.verify(FixMock.exactly(1), FixMock.newOrderSingle());
     }
@@ -259,7 +293,8 @@ cd fix-mock-server
 docker build -t allune/fix-mock-server .
 
 # Run it
-docker run -p 9090:9090 -p 9899:9899 allune/fix-mock-server
+docker run -p 127.0.0.1::9090 -p 127.0.0.1::9899 allune/fix-mock-server
+# Then run: docker port <container-id>
 ```
 
 ### Quick REST Examples
@@ -300,6 +335,11 @@ For the full list of endpoints and query parameters, see the [Standalone Server 
 - `DELETE /__admin/reset`: Clear stubs and journal.
 - `GET /__admin/recordings`: Export stubs captured in Recording Mode.
 - `GET /health`: Server health status.
+
+## Build and compatibility verification
+
+`mvn --batch-mode verify` is canonical. Pull requests run the core, JUnit and REST transport smoke lanes on QuickFIX/J 2.3.2 and 3.0.2; main, scheduled and manual workflows run the complete example and ORF suites. The packaged consumer is tested outside the reactor, and the `api-compatibility` profile compares core against 0.1.0.
+
 
 ## Documentation
 

@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "fixmock.acceptor-port=0")
 @AutoConfigureMockMvc
 class HealthControllerTest {
 
@@ -34,6 +34,7 @@ class HealthControllerTest {
 		mockMvc.perform(get("/health"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("UP"))
-				.andExpect(jsonPath("$.running").value(true));
+				.andExpect(jsonPath("$.running").value(true))
+				.andExpect(jsonPath("$.fixPort").isNumber());
 	}
 }

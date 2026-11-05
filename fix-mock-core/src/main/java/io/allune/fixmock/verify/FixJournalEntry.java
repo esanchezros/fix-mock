@@ -19,7 +19,7 @@ import java.util.Map;
 
 /**
  * Minimal journal entry describing a received FIX message.
- * Core is engine-agnostic and does not depend on QuickFIX/J types.
+ * The immutable metadata is safe to share; getMessage() returns a defensive QuickFIX/J value.
  */
 public final class FixJournalEntry {
 	private final long timestampMillis;
@@ -103,6 +103,14 @@ public final class FixJournalEntry {
 	public String getTargetCompId() { return targetCompId; }
 	public String getRaw() { return raw; }
 	public Map<Integer, String> getTags() { return tags; }
+	/** Returns a defensive QuickFIX/J message parsed from the recorded wire value. */
+	public quickfix.Message getMessage() {
+		try {
+			return new quickfix.Message(raw);
+		} catch (quickfix.InvalidMessage e) {
+			throw new IllegalStateException("Recorded FIX message is no longer parseable", e);
+		}
+	}
 
 	/**
 	 * Returns whether this message was inbound (received from counterparty) or outbound (sent to counterparty).
