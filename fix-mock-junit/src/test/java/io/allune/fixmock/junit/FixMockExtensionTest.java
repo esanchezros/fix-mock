@@ -27,12 +27,12 @@ public class FixMockExtensionTest {
 					.beginString("FIX.4.4")
 					.senderCompId("BROKER")
 					.targetCompId("CLIENT")
-					.acceptorPort(9920)
 					.build()
 	);
 
 	@Test
 	void extensionStartsServer() {
 		assertTrue(fix.server().isRunning(), "Server should be running under the extension");
+		assertTrue(fix.port() > 0, "Selected port should be exposed");
 	}
 }

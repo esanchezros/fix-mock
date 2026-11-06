@@ -17,7 +17,6 @@
 
 	<properties>
 		<junit.version>5.10.2</junit.version>
-		<quickfixj.version>2.3.1</quickfixj.version>
 		<slf4j.version>2.0.13</slf4j.version>
 	</properties>
 
@@ -46,13 +45,13 @@
 			<groupId>org.quickfixj</groupId>
 			<artifactId>quickfixj-core</artifactId>
 			<version>${quickfixj.version}</version>
-			<scope>test</scope>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.quickfixj</groupId>
 			<artifactId>quickfixj-messages-fix44</artifactId>
 			<version>${quickfixj.version}</version>
-			<scope>test</scope>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

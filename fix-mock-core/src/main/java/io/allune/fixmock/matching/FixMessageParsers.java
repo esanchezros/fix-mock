@@ -16,9 +16,7 @@ import io.allune.fixmock.verify.FixJournalEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.DataDictionary;
-import quickfix.DefaultMessageFactory;
 import quickfix.Message;
-import quickfix.MessageUtils;
 
 import java.io.InputStream;
 
@@ -34,11 +32,11 @@ final class FixMessageParsers {
 		if (raw == null || raw.isEmpty()) return null;
 		try {
 			DataDictionary dd = tryLoadSessionDictionary(entry.getBeginString());
-			return MessageUtils.parse(new DefaultMessageFactory(), dd, raw);
+			return new Message(raw, dd);
 		} catch (Exception e) {
 			try {
 				// Fallback: no dictionary
-				return MessageUtils.parse(new DefaultMessageFactory(), null, raw);
+				return new Message(raw, false);
 			} catch (Exception ignored) {
 				log.debug("Failed to parse FIX message", ignored);
 				return null;

@@ -81,13 +81,14 @@ class SessionConfigTest {
 	}
 
 	@Test
-	void shouldThrowForMissingPortOnAcceptorRole() {
-		SessionConfig.Builder builder = SessionConfig.builder()
+	void shouldDefaultAcceptorToDynamicPort() {
+		SessionConfig config = SessionConfig.builder()
 				.beginString("FIX.4.4")
 				.senderCompId("SENDER")
-				.targetCompId("TARGET");
+				.targetCompId("TARGET")
+				.build();
 
-		assertThrows(IllegalArgumentException.class, builder::build);
+		assertEquals(0, config.getPort());
 	}
 
 	@Test
@@ -112,6 +113,19 @@ class SessionConfigTest {
 				.host("localhost");
 
 		assertThrows(IllegalArgumentException.class, builder::build);
+	}
+
+	@Test
+	void shouldExposeInjectedSessionSettings() {
+		SessionConfig config = SessionConfig.builder()
+				.beginString("FIX.4.4")
+				.senderCompId("SENDER")
+				.targetCompId("TARGET")
+				.setting("CheckCompID", "N")
+				.build();
+
+		assertEquals("N", config.getSettings().get("CheckCompID"));
+		assertThrows(UnsupportedOperationException.class, () -> config.getSettings().put("x", "y"));
 	}
 
 	@Test

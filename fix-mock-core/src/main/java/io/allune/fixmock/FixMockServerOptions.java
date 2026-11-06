@@ -38,8 +38,8 @@ public final class FixMockServerOptions {
 	private final boolean resetOnLogout;
 
 	private FixMockServerOptions(Builder b) {
-		this.sessions = new ArrayList<>(b.sessions);
-		this.stubs = new ArrayList<>(b.stubs);
+		this.sessions = List.copyOf(b.sessions);
+		this.stubs = List.copyOf(b.stubs);
 		this.recordMode = b.recordMode;
 		this.useDataDictionary = b.useDataDictionary;
 		this.dictionaryPath = b.dictionaryPath;
@@ -83,7 +83,7 @@ public final class FixMockServerOptions {
 		private String beginString;
 		private String senderCompId;
 		private String targetCompId;
-		private Integer acceptorPort;
+		private Integer acceptorPort = 0;
 		private String initiatorHost;
 		private Integer initiatorPort;
 		
@@ -133,6 +133,7 @@ public final class FixMockServerOptions {
 		public Builder senderCompId(String s) { this.senderCompId = s; return this; }
 		public Builder targetCompId(String t) { this.targetCompId = t; return this; }
 		public Builder acceptorPort(int port) { this.acceptorPort = port; return this; }
+		public Builder dynamicPort() { this.acceptorPort = 0; return this; }
 		public Builder initiatorHost(String host) { this.initiatorHost = host; return this; }
 		public Builder initiatorPort(int port) { this.initiatorPort = port; return this; }
 		public Builder useDataDictionary(boolean v) { this.useDataDictionary = v; return this; }
@@ -158,7 +159,6 @@ public final class FixMockServerOptions {
 				
 				switch (role) {
 					case ACCEPTOR -> {
-						if (acceptorPort == null) throw new IllegalArgumentException("acceptorPort is required for ACCEPTOR role");
 						sb.port(acceptorPort);
 					}
 					case INITIATOR -> {

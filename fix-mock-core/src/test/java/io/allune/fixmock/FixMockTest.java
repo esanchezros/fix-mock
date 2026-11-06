@@ -260,7 +260,7 @@ class FixMockTest {
 		@Test
 		void shouldCreateNewOrderSinglePatternWithMsgTypeD() {
 			FixMessagePatternBuilder builder = FixMock.newOrderSingle();
-			assertEquals(MsgType.ORDER_SINGLE, builder.getMsgType());
+			assertEquals("D", builder.getMsgType());
 		}
 
 		@Test

@@ -20,19 +20,18 @@ class OrderFlowTest {
           .beginString("FIX.4.4")
           .senderCompId("BROKER")
           .targetCompId("CLIENT")
-          .acceptorPort(9880)
           .build()
   );
 
   @Test
   void executes_basic_flow() {
     fixMock.stubFor(
-        FixMock.stubFor(FixMock.newOrderSingle()).willReturn(
+        when(newOrderSingle()).willReturn(
             respondWithTemplate(() -> buildER()).copyFromRequestTags(11, 55)
         )
     );
 
-    // ... run your client against BROKER:9880 ...
+    // ... run your client against BROKER at `fixMock.port()` ...
 
     fixMock.verify(
         FixMock.exactly(1),
@@ -43,9 +42,10 @@ class OrderFlowTest {
 ```
 
 #### Per-class vs per-test lifecycle
+The default is `PER_CLASS`. For an instance per method, construct the extension with `FixMockExtension.Lifecycle.PER_TEST`; a non-static field by itself does not change the explicit lifecycle. The extension also supports method-parameter injection of `FixMockServer` and `FixMockExtension`.
 
-- Static `@RegisterExtension` creates a single server for all tests in the class.
-- Use a non-static field to have a fresh server per test method.
+
+- Use `PER_CLASS` for one server per test class or `PER_TEST` for a fresh server per test method.
 
 #### Common patterns
 
@@ -54,5 +54,5 @@ class OrderFlowTest {
 
 #### Troubleshooting
 
-- If your client connects too quickly, use small waits or client-side retries; the extension starts the server before the test runs, but network timing can vary.
-- Bind conflicts: adjust `acceptorPort` or let your client read the chosen port from configuration.
+- If your client connects too quickly, use `fixMock.awaitLogon(timeout)` or callback-driven client readiness; the extension starts the server before the test runs, but network timing can vary.
+- Bind conflicts: use the default ephemeral port and configure the client from `fixMock.port()`.

@@ -38,19 +38,26 @@ public final class RecordingService {
 	private static final Logger log = LoggerFactory.getLogger(RecordingService.class);
 
 	private final List<RecordingPair> pairs = new CopyOnWriteArrayList<>();
-	private final Map<String, Message> pendingRequests = new ConcurrentHashMap<>();
+	private final Map<String, java.util.concurrent.ConcurrentLinkedDeque<Message>> pendingRequests = new ConcurrentHashMap<>();
 
 	public void recordInbound(FixJournalEntry entry, Message message) {
-		// Inbound message is a potential request for a stub
-		pendingRequests.put(entry.getSessionId(), message);
+		// Per-session compute keeps enqueue atomic with outbound dequeue/removal.
+		pendingRequests.compute(entry.getSessionId(), (ignored, requests) -> {
+			java.util.concurrent.ConcurrentLinkedDeque<Message> queue = requests == null
+					? new java.util.concurrent.ConcurrentLinkedDeque<>() : requests;
+			queue.addLast(message);
+			return queue;
+		});
 	}
 
 	public void recordOutbound(FixJournalEntry entry, Message message) {
-		// Outbound message is a response to the last inbound message in this session
-		Message request = pendingRequests.remove(entry.getSessionId());
-		if (request != null) {
-			pairs.add(new RecordingPair(request, message, entry.getSessionId()));
-		}
+		// Outbound messages pair with the oldest unmatched inbound message in the session.
+		java.util.concurrent.atomic.AtomicReference<Message> request = new java.util.concurrent.atomic.AtomicReference<>();
+		pendingRequests.computeIfPresent(entry.getSessionId(), (ignored, requests) -> {
+			request.set(requests.pollFirst());
+			return requests.isEmpty() ? null : requests;
+		});
+		if (request.get() != null) pairs.add(new RecordingPair(request.get(), message, entry.getSessionId()));
 	}
 
 	public List<RecordingPair> getPairs() {

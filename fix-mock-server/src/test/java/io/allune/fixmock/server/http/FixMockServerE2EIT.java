@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "fixmock.acceptor-port=0")
 class FixMockServerE2EIT {
 
 	@LocalServerPort
@@ -48,7 +48,7 @@ class FixMockServerE2EIT {
 	private TestRestTemplate restTemplate;
 
 	@Autowired
-	private FixMockServerProperties fixMockProps;
+	private ServerManager serverManager;
 
 	private Initiator initiator;
 
@@ -84,7 +84,7 @@ class FixMockServerE2EIT {
 		assertEquals(HttpStatus.CREATED, regResponse.getStatusCode());
 
 		// 2. Send real FIX message to the server's FIX port
-		int fixPort = fixMockProps.getAcceptorPort();
+		int fixPort = serverManager.boundPort();
 		CapturingApp app = new CapturingApp();
 		initiator = startInitiator(app, "CLIENT", "BROKER", fixPort);
 
@@ -131,7 +131,6 @@ class FixMockServerE2EIT {
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(1000);
 		return initiator;
 	}
 

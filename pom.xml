@@ -37,6 +37,11 @@
 
 	<properties>
 		<java.version>17</java.version>
+		<quickfixj.version>2.3.2</quickfixj.version>
+		<slf4j.version>2.0.13</slf4j.version>
+		<assertj-quickfixj.version>1.0.0</assertj-quickfixj.version>
+		<awaitility.version>4.2.2</awaitility.version>
+		<maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
@@ -50,6 +55,16 @@
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>${slf4j.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<pluginManagement>
@@ -69,6 +84,7 @@
 					<configuration>
 						<argLine>@{argLine}</argLine>
 						<useModulePath>false</useModulePath>
+						<forkedProcessTimeoutInSeconds>180</forkedProcessTimeoutInSeconds>
 						<excludes>
 							<exclude>**/*IT.java</exclude>
 						</excludes>
@@ -89,6 +105,7 @@
 					<configuration>
 						<argLine>@{argLine}</argLine>
 						<useModulePath>false</useModulePath>
+						<forkedProcessTimeoutInSeconds>180</forkedProcessTimeoutInSeconds>
 					</configuration>
 				</plugin>
 			</plugins>
@@ -97,6 +114,20 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>${maven-enforcer-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>enforce-dependency-convergence</id>
+						<goals><goal>enforce</goal></goals>
+						<configuration>
+							<rules><dependencyConvergence/></rules>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>
@@ -148,8 +179,8 @@
 				<extensions>true</extensions>
 				<configuration>
 					<publishingServerId>central</publishingServerId>
-					<autoPublish>true</autoPublish>
-					<waitUntil>published</waitUntil>
+					<autoPublish>false</autoPublish>
+					<waitUntil>validated</waitUntil>
 				</configuration>
 			</plugin>
 		</plugins>

@@ -12,20 +12,23 @@ FixMockServerOptions options = FixMockServerOptions.builder()
         .beginString("FIX.4.4")
         .senderCompId("BROKER1")
         .targetCompId("CLIENT1")
-        .port(9921)
+        .setting("SocketReuseAddress", "Y")
+        .port(0)
         .role(Role.ACCEPTOR)
         .build())
     .addSession(SessionConfig.builder()
         .beginString("FIX.4.4")
         .senderCompId("BROKER2")
         .targetCompId("CLIENT2")
-        .port(9922)
+        .port(0)
         .role(Role.ACCEPTOR)
         .build())
     .build();
 
 FixMockServer server = new SimpleFixMockServer(options);
 server.start();
+int broker1Port = server.getPort(new SessionID("FIX.4.4", "BROKER1", "CLIENT1"));
+int broker2Port = server.getPort(new SessionID("FIX.4.4", "BROKER2", "CLIENT2"));
 ```
 
 #### Stubbing and Verification
@@ -54,7 +57,8 @@ FixMockServerOptions options = FixMockServerOptions.builder()
         .beginString("FIX.4.4")
         .senderCompId("BROKER1")
         .targetCompId("CLIENT1")
-        .port(9921)
+        .setting("SocketReuseAddress", "Y")
+        .port(0)
         .role(FixMockServerOptions.Role.ACCEPTOR)
         .build())
     .addSession(SessionConfig.builder()

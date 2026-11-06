@@ -65,7 +65,7 @@ public final class FixMessagePatternBuilder implements FixMessagePattern {
 	}
 
 	public FixMessagePatternBuilder newOrderSingle() {
-		return messageType(MsgType.ORDER_SINGLE);
+		return messageType("D");
 	}
 
 	public FixMessagePatternBuilder executionReport() {

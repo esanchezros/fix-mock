@@ -86,13 +86,14 @@ class FixMockServerOptionsTest {
 	}
 
 	@Test
-	void shouldThrowForMissingAcceptorPortOnAcceptorRole() {
-		FixMockServerOptions.Builder builder = FixMockServerOptions.builder()
+	void shouldDefaultAcceptorPortToDynamic() {
+		FixMockServerOptions options = FixMockServerOptions.builder()
 				.beginString("FIX.4.4")
 				.senderCompId("SENDER")
-				.targetCompId("TARGET");
+				.targetCompId("TARGET")
+				.build();
 
-		assertThrows(IllegalArgumentException.class, builder::build);
+		assertEquals(0, options.getAcceptorPort());
 	}
 
 	@Test

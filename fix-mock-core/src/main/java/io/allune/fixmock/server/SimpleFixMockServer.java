@@ -28,6 +28,9 @@ import quickfix.field.SenderCompID;
 import quickfix.field.TargetCompID;
 
 import java.time.Instant;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,7 +39,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +60,6 @@ public final class SimpleFixMockServer implements FixMockServer {
 	private String targetCompId;
 	private int port;
 
-	private final List<FixMockServerOptions> optionsList = new ArrayList<>(); // Support multiple options if needed, but usually one options object with multiple sessions
 	private FixMockServerOptions options;
 
 	private final List<FixJournalEntry> journal = new CopyOnWriteArrayList<>();
@@ -60,9 +67,11 @@ public final class SimpleFixMockServer implements FixMockServer {
 	private final RecordingService recordingService = new RecordingService();
 	private final AtomicBoolean running = new AtomicBoolean(false);
 
-	private final List<Acceptor> acceptors = new ArrayList<>();
-	private final List<Initiator> initiators = new ArrayList<>();
-	private final List<SessionID> sessionIDs = new ArrayList<>();
+	private final List<Acceptor> acceptors = new CopyOnWriteArrayList<>();
+	private final List<Initiator> initiators = new CopyOnWriteArrayList<>();
+	private final List<SessionID> sessionIDs = new CopyOnWriteArrayList<>();
+	private final Map<SessionID, Integer> boundPorts = new ConcurrentHashMap<>();
+	private volatile ScheduledExecutorService delayExecutor;
 
 	public SimpleFixMockServer(String beginString, String senderCompId, String targetCompId, int port) {
 		this.beginString = Objects.requireNonNull(beginString);
@@ -79,15 +88,19 @@ public final class SimpleFixMockServer implements FixMockServer {
 		this.senderCompId = options.getSenderCompId();
 		this.targetCompId = options.getTargetCompId();
 		this.port = options.getAcceptorPort() == null ? 0 : options.getAcceptorPort();
+		if (options.getRecordMode() == FixMockServerOptions.RecordMode.PLAYBACK) stubs.addAll(options.getStubs());
 	}
 
 	@Override
-	public void start() {
+	public synchronized void start() {
 		if (running.get()) return;
+		boundPorts.clear();
+		delayExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
+			Thread thread = new Thread(task, "fixmock-delayed-response");
+			thread.setDaemon(true);
+			return thread;
+		});
 
-		if (options != null && options.getRecordMode() == FixMockServerOptions.RecordMode.PLAYBACK) {
-			stubs.addAll(options.getStubs());
-		}
 
 		try {
 			// Build session settings (prefer options if provided)
@@ -177,28 +190,47 @@ public final class SimpleFixMockServer implements FixMockServer {
 				settings.setString(sessionID, "HeartBtInt", Integer.toString(hb));
 				settings.setString(sessionID, "StartTime", "00:00:00");
 				settings.setString(sessionID, "EndTime", "23:59:59");
+				for (Map.Entry<String, String> setting : config.getSettings().entrySet()) {
+					settings.setString(sessionID, setting.getKey(), setting.getValue());
+				}
 
-				Application app = new JournalApplication(journal, stubs, recordingService, options);
+				Application app = new JournalApplication(journal, stubs, recordingService, options, delayExecutor);
 				MessageStoreFactory storeFactory = new MemoryStoreFactory();
 				LogFactory logFactory = new SLF4JLogFactory(settings);
 				MessageFactory messageFactory = new DefaultMessageFactory();
 
 				if (config.getRole() == FixMockServerOptions.Role.INITIATOR) {
 					SocketInitiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
-					initiator.start();
 					initiators.add(initiator);
+					initiator.start();
 					log.info("SimpleFixMockServer (initiator) connecting to {}:{} for session {}", config.getHost(), config.getPort(), sessionID);
 				} else {
 					ThreadedSocketAcceptor acceptor = new ThreadedSocketAcceptor(app, storeFactory, settings, logFactory, messageFactory);
-					acceptor.start();
 					acceptors.add(acceptor);
-					log.info("SimpleFixMockServer started on port {} for session {}", config.getPort(), sessionID);
+					acceptor.start();
+					boundPorts.put(sessionID, resolveBoundPort(acceptor, config.getPort()));
+					log.info("SimpleFixMockServer started on port {} for session {}", boundPorts.get(sessionID), sessionID);
 				}
 			}
 			running.set(true);
-		} catch (ConfigError e) {
+		} catch (Exception e) {
+			stopConnectors(true);
 			throw new RuntimeException("Failed to start SimpleFixMockServer", e);
 		}
+	}
+
+	private static int resolveBoundPort(ThreadedSocketAcceptor acceptor, int configuredPort) {
+		if (configuredPort != 0) return configuredPort;
+		for (org.apache.mina.core.service.IoAcceptor endpoint : acceptor.getEndpoints()) {
+			SocketAddress address = endpoint.getLocalAddress();
+			if (address instanceof InetSocketAddress inetAddress) return inetAddress.getPort();
+		}
+		throw new IllegalStateException("QuickFIX/J did not expose the selected acceptor port");
+	}
+
+	@Override
+	public Map<SessionID, Integer> getBoundPorts() {
+		return Collections.unmodifiableMap(new java.util.LinkedHashMap<>(boundPorts));
 	}
 
 	@Override
@@ -238,29 +270,40 @@ public final class SimpleFixMockServer implements FixMockServer {
 	}
 
 	@Override
-	public void stop() {
-		if (!running.get()) return;
-		try {
-			for (Acceptor acceptor : acceptors) {
-				try {
-					acceptor.stop();
-				} catch (Exception e) {
-					log.warn("Error stopping acceptor: {}", e.getMessage());
+	public synchronized void stop() {
+		stop(false);
+	}
+
+	@Override
+	public synchronized void stop(boolean force) {
+		if (!running.get() && acceptors.isEmpty() && initiators.isEmpty() && delayExecutor == null) return;
+		stopConnectors(force);
+		running.set(false);
+		log.info("FixMock server stopped");
+	}
+
+	private void stopConnectors(boolean force) {
+		for (Acceptor acceptor : acceptors) {
+			try { acceptor.stop(force); } catch (Exception e) { log.warn("Error stopping acceptor", e); }
+		}
+		for (Initiator initiator : initiators) {
+			try { initiator.stop(force); } catch (Exception e) { log.warn("Error stopping initiator", e); }
+		}
+		acceptors.clear();
+		initiators.clear();
+		sessionIDs.clear();
+		boundPorts.clear();
+		ScheduledExecutorService executor = delayExecutor;
+		delayExecutor = null;
+		if (executor != null) {
+			executor.shutdownNow();
+			try {
+				if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+					log.warn("Delayed-response executor did not terminate within 5 seconds");
 				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
-			for (Initiator initiator : initiators) {
-				try {
-					initiator.stop();
-				} catch (Exception e) {
-					log.warn("Error stopping initiator: {}", e.getMessage());
-				}
-			}
-			acceptors.clear();
-			initiators.clear();
-			sessionIDs.clear();
-			log.info("FixMock server stopped");
-		} finally {
-			running.set(false);
 		}
 	}
 
@@ -289,29 +332,63 @@ public final class SimpleFixMockServer implements FixMockServer {
 		}
 	}
 
-	/** Test helper: waits up to the given timeout for the session to be logged on. */
-	public boolean awaitLogon(java.time.Duration timeout) {
-		long deadline = System.currentTimeMillis() + (timeout == null ? 0 : timeout.toMillis());
-		while (System.currentTimeMillis() < deadline) {
-			try {
-				if (!sessionIDs.isEmpty()) {
-					boolean allLoggedOn = true;
-					for (SessionID sid : sessionIDs) {
-						Session session = Session.lookupSession(sid);
-						if (session == null || !session.isLoggedOn()) {
-							allLoggedOn = false;
-							break;
-						}
-					}
-					if (allLoggedOn) return true;
-				}
-				Thread.sleep(50);
-			} catch (InterruptedException ignored) {
-				Thread.currentThread().interrupt();
-				break;
+	@Override
+	public boolean awaitReady(Duration timeout) {
+		return waitUntil(timeout, () -> running.get() && boundPorts.size() == acceptors.size());
+	}
+
+	@Override
+	public boolean awaitLogon(Duration timeout) {
+		return waitUntil(timeout, () -> !sessionIDs.isEmpty() && sessionIDs.stream().allMatch(sid -> {
+			Session session = Session.lookupSession(sid);
+			return session != null && session.isLoggedOn();
+		}));
+	}
+
+	@Override
+	public boolean awaitLogout(Duration timeout) {
+		return waitUntil(timeout, () -> sessionIDs.stream().noneMatch(sid -> {
+			Session session = Session.lookupSession(sid);
+			return session != null && session.isLoggedOn();
+		}));
+	}
+
+	private boolean waitUntil(Duration timeout, BooleanSupplier condition) {
+		long timeoutNanos = timeout == null ? 0 : Math.max(0, timeout.toNanos());
+		long deadline = System.nanoTime() + timeoutNanos;
+		do {
+			if (condition.getAsBoolean()) return true;
+			if (Thread.currentThread().isInterrupted()) return false;
+			LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+		} while (System.nanoTime() < deadline);
+		return condition.getAsBoolean();
+	}
+
+	@Override
+	public Message awaitMessage(FixMessagePattern pattern, Duration timeout) {
+		Objects.requireNonNull(pattern, "pattern");
+		long timeoutNanos = timeout == null ? 0 : Math.max(0, timeout.toNanos());
+		long deadline = System.nanoTime() + timeoutNanos;
+		do {
+			for (FixJournalEntry entry : journal) {
+				if (pattern.test(entry)) return entry.getMessage();
 			}
+			if (Thread.currentThread().isInterrupted()) break;
+			LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+		} while (System.nanoTime() < deadline);
+		throw new AssertionError("Timed out after " + timeout + " waiting for " + pattern.describe()
+				+ "; journal entries=" + journal.size() + "\n" + String.join("\n---\n", summarizeRecent(5)));
+	}
+
+	@Override
+	public void disconnect(SessionID sessionId, String reason) {
+		Session session = Session.lookupSession(Objects.requireNonNull(sessionId, "sessionId"));
+		if (session == null) throw new IllegalArgumentException("Unknown session " + sessionId);
+		try {
+			session.disconnect(reason == null ? "FixMock requested disconnect" : reason, false);
+		} catch (java.io.IOException e) {
+			throw new IllegalStateException("Failed to disconnect session " + sessionId, e);
 		}
-		return false;
 	}
 
 	@Override
@@ -407,13 +484,15 @@ public final class SimpleFixMockServer implements FixMockServer {
 		private final List<StubMapping> stubs;
 		private final RecordingService recordingService;
 		private final FixMockServerOptions options;
+		private final ScheduledExecutorService delayExecutor;
 		private final Map<String, String> scenarioStates = new ConcurrentHashMap<>();
 
-		private JournalApplication(List<FixJournalEntry> journal, List<StubMapping> stubs, RecordingService recordingService, FixMockServerOptions options) {
+		private JournalApplication(List<FixJournalEntry> journal, List<StubMapping> stubs, RecordingService recordingService, FixMockServerOptions options, ScheduledExecutorService delayExecutor) {
 			this.journal = journal;
 			this.stubs = stubs;
 			this.recordingService = recordingService;
 			this.options = options;
+			this.delayExecutor = delayExecutor;
 		}
 
 		@Override
@@ -506,22 +585,28 @@ public final class SimpleFixMockServer implements FixMockServer {
 
 				try {
 					Message response = stub.getResponse().generateResponse(request);
-					if (response != null) {
-						if (stub.getResponse().getDelayMillis() > 0) {
-							Thread.sleep(stub.getResponse().getDelayMillis());
-						}
-						Session.sendToTarget(response, sessionId);
-					}
-
 					if (stub.isInScenario() && stub.getNewScenarioState() != null) {
 						scenarioStates.put(stub.getScenarioName(), stub.getNewScenarioState());
 					}
-
-					if (stub.getResponse().shouldDisconnect()) {
-						Session.lookupSession(sessionId).disconnect("Stub requested disconnect", false);
+					Runnable responseAction = () -> {
+						try {
+							if (response != null) Session.sendToTarget(response, sessionId);
+							if (stub.getResponse().shouldDisconnect()) {
+								Session session = Session.lookupSession(sessionId);
+								if (session != null) session.disconnect("Stub requested disconnect", false);
+							}
+						} catch (Exception e) {
+							log.error("Error sending stub response for session {}", sessionId, e);
+						}
+					};
+					long delayMillis = stub.getResponse().getDelayMillis();
+					if (delayMillis > 0) {
+						delayExecutor.schedule(responseAction, delayMillis, TimeUnit.MILLISECONDS);
+					} else {
+						responseAction.run();
 					}
 				} catch (Exception e) {
-					log.error("Error generating or sending stub response", e);
+					log.error("Error generating or scheduling stub response", e);
 				}
 				break; // first matching stub wins
 			}
