@@ -131,6 +131,27 @@ class ScenarioIntegrationTest {
 	}
 
 	@Test
+	void shouldIsolateDictionaryConfigurationWithoutChangingGlobalXmlPolicy() {
+		String externalDtdPolicy = System.getProperty("javax.xml.accessExternalDTD");
+		SimpleFixMockServer fix42 = dictionaryServer("FIX.4.2", "MOCK_42", "CLIENT_42", "FIX42.xml");
+		SimpleFixMockServer fix44 = dictionaryServer("FIX.4.4", "MOCK_44", "CLIENT_44", "FIX44.xml");
+		try {
+			java.util.concurrent.CompletableFuture<Void> fix42Start = java.util.concurrent.CompletableFuture.runAsync(fix42::start);
+			java.util.concurrent.CompletableFuture<Void> fix44Start = java.util.concurrent.CompletableFuture.runAsync(fix44::start);
+			java.util.concurrent.CompletableFuture.allOf(fix42Start, fix44Start).join();
+			assertTrue(fix42.awaitReady(java.time.Duration.ofSeconds(2)));
+			assertTrue(fix44.awaitReady(java.time.Duration.ofSeconds(2)));
+			assertTrue(fix42.getPort() > 0);
+			assertTrue(fix44.getPort() > 0);
+			assertNotEquals(fix42.getPort(), fix44.getPort());
+			assertEquals(externalDtdPolicy, System.getProperty("javax.xml.accessExternalDTD"));
+		} finally {
+			fix42.stop(true);
+			fix44.stop(true);
+		}
+	}
+
+	@Test
 	void shouldSupportRepeatedStartStopCycles() {
 		server = dynamicServer("MOCK_CYCLE", "CLIENT_CYCLE");
 		for (int i = 0; i < 5; i++) {
@@ -148,6 +169,17 @@ class ScenarioIntegrationTest {
 				.senderCompId(sender)
 				.targetCompId(target)
 				.dynamicPort()
+				.build());
+	}
+
+	private static SimpleFixMockServer dictionaryServer(String beginString, String sender, String target, String dictionary) {
+		return new SimpleFixMockServer(FixMockServerOptions.builder()
+				.beginString(beginString)
+				.senderCompId(sender)
+				.targetCompId(target)
+				.dynamicPort()
+				.useDataDictionary(true)
+				.dictionary(dictionary)
 				.build());
 	}
 

@@ -111,23 +111,6 @@ public final class SimpleFixMockServer implements FixMockServer {
 				if (dictPath == null || dictPath.isBlank()) {
 					dictPath = resolveDefaultDictionary(beginString);
 				}
-				// FIX dictionary XML files (e.g., FIX44.xml) contain external DTD references like:
-				//   <!DOCTYPE fix SYSTEM "fix.dtd">
-				// Java 17+ blocks external DTD access by default as an XXE security measure.
-				// QuickFIX/J's DataDictionary parser requires DTD resolution to parse these files.
-				//
-				// This property is only set when UseDataDictionary is explicitly enabled by the user.
-				// The security risk is minimal because:
-				// - Dictionary files are bundled resources or explicitly configured paths, not user-supplied
-				// - This is a test mocking library, not a production FIX engine
-				//
-				// If this property cannot be set (e.g., SecurityManager restrictions), users can pass
-				// -Djavax.xml.accessExternalDTD=all as a JVM argument.
-				try {
-					System.setProperty("javax.xml.accessExternalDTD", "all");
-				} catch (SecurityException ignored) {
-					log.debug("Could not set javax.xml.accessExternalDTD property; dictionary parsing may fail");
-				}
 			}
 			int hb = options != null ? options.getHeartBtIntSeconds() : 30;
 			boolean resetOnLogon = options == null || options.isResetOnLogon();
