@@ -53,6 +53,7 @@
 		<assertj-quickfixj.version>1.0.0</assertj-quickfixj.version>
 		<awaitility.version>4.2.2</awaitility.version>
 		<central-publishing-maven-plugin.version>0.12.0</central-publishing-maven-plugin.version>
+		<maven.deploy.skip>false</maven.deploy.skip>
 		<maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -220,6 +221,7 @@
 						<extensions>true</extensions>
 						<configuration>
 							<publishingServerId>central</publishingServerId>
+							<skipPublishing>${maven.deploy.skip}</skipPublishing>
 							<autoPublish>false</autoPublish>
 							<waitUntil>validated</waitUntil>
 						</configuration>
