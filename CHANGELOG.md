@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-11-17
 
 ### Added
 
@@ -15,29 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Peer-side FIX 4.4 transport tests in both initiator/acceptor directions using AssertJ QuickFIX/J 1.0.0.
 - CI lanes for Java 17 and 25 with QuickFIX/J 2.3.2 and 3.0.2.
 - A standalone packaged-artifact consumer fixture that runs the initiator-to-peer transport smoke against both QuickFIX/J lines.
+- Compatibility, support, contribution, architecture decision, security, and release documentation.
 
 ### Changed
 
 - QuickFIX/J dependencies are optional so applications select their supported engine line.
 - Recorded state uses concurrent collections and returns immutable snapshots or defensive `Message` values.
 - Delayed stub responses use a managed scheduler rather than blocking QuickFIX/J callback threads.
-- Dependency convergence and forked-test timeouts are enforced by the canonical `mvn --batch-mode verify` build.
+- Dependency convergence and forked-test timeouts are enforced by the canonical `mvn --batch-mode clean verify` build.
 - Core line coverage is held at 80%, and the `api-compatibility` profile checks public binary and source compatibility against 0.1.0.
+- Packaged consumers align their SLF4J binding with the selected QuickFIX/J line.
+- Central publishing, signing, and release-only validation are isolated in an approval-gated `release` profile.
+
+### Fixed
+
+- Dictionary-enabled FixMock instances no longer change the process-global XML external-DTD policy.
+- Ordinary verification no longer resolves the Central publishing extension.
 
 ### Migration
 
 - Acceptors now default to port `0`; read the selected port with `FixMockServer.getPort()` or `FixMockExtension.port()`. Set an explicit port only when required.
 - Consumers must declare `quickfixj-core` and the required message module, normally `quickfixj-messages-all`, in test scope.
 - Java 17 remains the minimum. Supported engine baselines are QuickFIX/J 2.3.2 and 3.0.2.
-
-### Release checklist
-
-- Run clean verification on both QuickFIX/J lines and inspect Surefire/Failsafe reports.
-- Build with the `release` profile and inspect binary, source, Javadoc, POM and signatures.
-- Verify the staged artifacts and dependencies resolve using Maven Central only.
-- Run the packaged-consumer gate; run the Spring Boot starter interoperability gate when that deferred fixture lands.
-- Obtain explicit maintainer approval before any version change, tag, push, Central upload/publication or GitHub release.
-
 
 ## [0.1.0] - 2026-02-19
 
@@ -86,5 +85,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FIX 4.4 message support (convenience factories)
 - Apache License 2.0
 
-[Unreleased]: https://github.com/esanchezros/fix-mock/compare/v0.1.0...HEAD
+[0.2.0]: https://github.com/esanchezros/fix-mock/compare/v0.1.0...0.2.0
 [0.1.0]: https://github.com/esanchezros/fix-mock/releases/tag/v0.1.0

@@ -338,7 +338,7 @@ For the full list of endpoints and query parameters, see the [Standalone Server 
 
 ## Build and compatibility verification
 
-`mvn --batch-mode verify` is canonical. Pull requests run the core, JUnit and REST transport smoke lanes on QuickFIX/J 2.3.2 and 3.0.2; main, scheduled and manual workflows run the complete example and ORF suites. The packaged consumer is tested outside the reactor, and the `api-compatibility` profile compares core against 0.1.0.
+`mvn --batch-mode clean verify` is canonical. Pull requests, main, scheduled, and manual workflows run the complete reactor on QuickFIX/J 2.3.2 and 3.0.2. The packaged consumer is tested outside the reactor, and the `api-compatibility` profile compares core against 0.1.0.
 
 
 ## Documentation
@@ -349,6 +349,7 @@ Project and contributor information:
 - [Compatibility](docs/compatibility.adoc)
 - [Support policy](docs/support-policy.adoc)
 - [Release process](docs/release-process.adoc)
+- [Release checklist](docs/release-checklist.md)
 - [Architecture decisions](docs/adr/README.adoc)
 - [Contributing](CONTRIBUTING.adoc)
 - [Security policy](SECURITY.md)

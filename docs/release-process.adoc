@@ -1,55 +1,112 @@
 = Release Process
 
-This document defines FixMock release controls.
+== Ownership
 
-== Release ownership
+Only a maintainer publishes artifacts, creates tags, or marks a GitHub release final. A merged release-preparation pull request does not authorize deployment or publication.
 
-Only a maintainer publishes artifacts, creates release tags, or marks a GitHub release final. Pull requests and automated agents must not publish or tag releases without explicit maintainer approval.
+== Shared standard
 
-== Release preparation
+This lifecycle is the standard for AssertJ QuickFIX/J, FixMock, and the QuickFIX/J Spring Boot starter:
 
-. Confirm the target branch and milestone.
-. Confirm all milestone issues are closed or explicitly deferred.
-. Review compatibility, API changes, dependency changes, and migration guidance.
-. Update README, compatibility documentation, changelog, and release notes.
-. Run the complete verification matrix from a clean checkout.
-. Verify packaged consumers and any ecosystem interoperability fixtures required by the target milestone.
-. Confirm Maven coordinates, POMs, sources, Javadocs, signatures, checksums, and license metadata.
-. Prepare the release version and next development version without publishing.
+* Prepare the release on a `release/<version>` branch from a green mainline.
+* Commit the exact non-SNAPSHOT version, changelog, SCM tag, and documentation before deployment.
+* Keep the Central publishing plugin, source JAR, Javadoc JAR, signing, and release-only Enforcer rules in the `release` Maven profile.
+* Configure Central with `autoPublish=false` and `waitUntil=validated`.
+* Upload and validate first. Publish separately in the Central Portal after inspection.
+* Create the Git tag only after Central reports the deployment as `PUBLISHED`.
+* Prepare the next development SNAPSHOT in a separate pull request.
 
-The canonical local command is:
+Preserve the historical `v0.1.0` tag. Use plain semantic versions for new tags, beginning with `0.2.0`.
+
+== Version preparation
+
+Create `release/<version>` from a green `main` branch. Update the parent and all reactor modules together:
 
 [source,shell]
 ----
-mvn --batch-mode verify
+mvn --batch-mode versions:set \
+  -DnewVersion=<version> \
+  -DgenerateBackupPoms=false
 ----
 
-== Required release evidence
+Update the external `consumer-pom.xml` fixture to consume the same release version. Confirm the published POM SCM tag, README examples, changelog, and compatibility documentation use the intended version.
 
-The release pull request records:
+For FixMock 0.2.0, confirm:
 
-* Supported Java and QuickFIX/J matrix results.
-* Peer-side transport results in both roles.
-* JUnit, REST, Docker, and lifecycle results.
-* Packaged-consumer results and required ecosystem interoperability results, with explicit deferrals recorded.
-* Binary and source compatibility results.
-* Dependency convergence and Central-only dependency resolution.
-* Source, Javadoc, signature, checksum, and license inspection.
-* Documentation and migration review.
+* The parent and all five reactor modules use `0.2.0`.
+* `consumer-pom.xml` consumes `0.2.0`.
+* The published POM SCM tag is `0.2.0`.
+* README installation examples use `0.2.0`.
+* The changelog contains a dated `0.2.0` section.
+
+== Verification
+
+Run the canonical build and release artifact build from a clean checkout:
+
+[source,shell]
+----
+mvn --batch-mode clean verify
+mvn --batch-mode clean verify -Dquickfixj.version=3.0.2
+mvn --batch-mode -Prelease -Dgpg.skip=true clean verify
+----
+
+Record Java 17 and 25 results with QuickFIX/J 2.3.2 and 3.0.2; peer-side transport results in both roles; JUnit, REST, lifecycle, example, and integration results; packaged-consumer results; dependency convergence; 80 percent core line coverage; japicmp compatibility with 0.1.0; source and Javadoc archives; and required ecosystem interoperability results. Record explicit deferrals for fixtures assigned to later milestones.
+
+The release profile rejects SNAPSHOT project versions and SNAPSHOT dependencies. Normal verification must not resolve the release-only Central publishing extension.
+
+== Credentials and signing
+
+Configure a Central Portal user token under server ID `central` in the maintainer's Maven `settings.xml`. Do not commit credentials.
+
+Use GPG key `E669C3E4ABB2AC58` through `gpg-agent` on a workstation. Prime the agent before the batch build. For agentless continuous integration, provide the passphrase through the `MAVEN_GPG_PASSPHRASE` environment variable from a secret store.
+
+Do not pass `gpg.passphrase` on the command line and do not copy a passphrase from `settings.xml` into shell history. The release profile enables Maven GPG Plugin best-practice enforcement.
+
+== Candidate bundle
+
+After the release-preparation pull request is merged, check out that exact commit and create a signed bundle without uploading it:
+
+[source,shell]
+----
+mvn --batch-mode -Prelease \
+  -Dgpg.keyname=E669C3E4ABB2AC58 \
+  -DskipUpload=true \
+  clean deploy
+----
+
+Run the command from the reactor root without a manual module list. Inspect `target/central-publishing/central-bundle.zip`. Confirm all publishable parent, core, JUnit, and server POMs and artifacts are present. Confirm main, source, Javadoc, signature, checksum, coordinate, license, dependency-scope, reproducibility, and SCM metadata.
 
 == Maven Central
 
-The maintainer performs or explicitly approves Maven Central publication. Credentials stay in protected release infrastructure or maintainer settings and are never committed. Staged artifacts must be inspected before publication becomes final.
+After explicit maintainer approval, upload the same verified commit:
 
-== After publication
+[source,shell]
+----
+mvn --batch-mode -Prelease \
+  -Dgpg.keyname=E669C3E4ABB2AC58 \
+  clean deploy
+----
 
-. Resolve the released artifacts from a fresh Maven repository.
-. Verify the published POM, sources, Javadocs, signatures, and checksums.
-. Create the signed or annotated Git tag.
-. Publish the GitHub release and release notes.
-. Update README version examples and compatibility documentation.
-. Advance the development version.
+The command uploads the signed bundle and waits for Central validation. It does not publish automatically. Open the Central Portal deployments page, inspect the validated deployment, and explicitly publish it. Record the deployment ID.
+
+== Tag and GitHub release
+
+After Central reports `PUBLISHED`:
+
+[source,shell]
+----
+git tag -s 0.2.0 -m "FixMock 0.2.0"
+git push origin 0.2.0
+----
+
+Create the GitHub release from the tag and finalized changelog. Resolve the released POMs and all published JARs from Maven Central using a fresh local Maven repository.
+
+== Next development iteration
+
+Set the parent, reactor modules, and external consumer fixture to the next development version, normally `0.3.0-SNAPSHOT`, in a separate pull request. Keep README installation examples on the latest published release until the next release.
+
+Update the Spring Boot starter through a separate dependency pull request and run its compatibility workflow against the released artifacts.
 
 == Failed releases
 
-Published Maven artifacts are immutable and must not be replaced. If an artifact is defective, stop the process, document the failure, and publish a corrected patch after verification and approval.
+Stop on any validation or publication failure. Published Maven artifacts are immutable. Do not replace a published version; prepare and verify a corrected patch release.

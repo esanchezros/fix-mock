@@ -6,7 +6,7 @@
   <version>1.0.0-SNAPSHOT</version>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
-    <fixmock.version>0.2.0-SNAPSHOT</fixmock.version>
+    <fixmock.version>0.2.0</fixmock.version>
     <quickfixj.version>2.3.2</quickfixj.version>
     <slf4j.version>1.7.30</slf4j.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
