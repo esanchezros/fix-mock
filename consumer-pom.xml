@@ -8,6 +8,7 @@
     <maven.compiler.release>17</maven.compiler.release>
     <fixmock.version>0.2.0-SNAPSHOT</fixmock.version>
     <quickfixj.version>2.3.2</quickfixj.version>
+    <slf4j.version>1.7.30</slf4j.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <dependencies>
@@ -16,12 +17,22 @@
     <dependency><groupId>org.quickfixj</groupId><artifactId>quickfixj-messages-all</artifactId><version>${quickfixj.version}</version><scope>test</scope></dependency>
     <dependency><groupId>io.allune</groupId><artifactId>assertj-quickfixj</artifactId><version>1.0.0</version><scope>test</scope></dependency>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.2</version><scope>test</scope></dependency>
-    <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId><version>2.0.13</version><scope>test</scope></dependency>
+    <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId><version>${slf4j.version}</version><scope>test</scope></dependency>
   </dependencies>
   <build>
     <directory>${project.basedir}/target/consumer-fixture</directory>
     <testSourceDirectory>${project.basedir}/fix-mock-examples/src/test/java</testSourceDirectory>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>enforce-dependency-convergence</id>
+            <goals><goal>enforce</goal></goals>
+            <configuration><rules><dependencyConvergence/></rules></configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.14.0</version>
         <configuration><testIncludes><testInclude>**/FixMockInitiatorModeIT.java</testInclude></testIncludes></configuration>
@@ -32,4 +43,11 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>quickfixj-3</id>
+      <activation><property><name>quickfixj.version</name><value>3.0.2</value></property></activation>
+      <properties><slf4j.version>2.0.18</slf4j.version></properties>
+    </profile>
+  </profiles>
 </project>
