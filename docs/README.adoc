@@ -1,0 +1,23 @@
+= Project Documentation
+
+The main link:../README.md[README] is the quickest introduction to FixMock. Existing Markdown guides describe the embedded, JUnit, REST, and Docker APIs.
+
+== Maintainer documentation
+
+* link:../ROADMAP.adoc[Roadmap]
+* link:support-policy.adoc[Support Policy]
+* link:compatibility.adoc[Compatibility]
+* link:release-process.adoc[Release Process]
+* link:adr/README.adoc[Architecture Decision Records]
+
+== User guides
+
+* link:matchers.md[Matchers]
+* link:response-strategies.md[Response strategies]
+* link:initiator-mode.md[Initiator mode]
+* link:recording-mode.md[Recording mode]
+* link:multi-session.md[Multi-session support]
+* link:junit-extension.md[JUnit 5 extension]
+* link:server.md[REST and Docker server]
+
+The README remains the quick-start and navigation entry point. Detailed guides own the complete contracts and examples.

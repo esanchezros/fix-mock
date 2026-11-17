@@ -343,6 +343,18 @@ For the full list of endpoints and query parameters, see the [Standalone Server 
 
 ## Documentation
 
+Project and contributor information:
+
+- [Roadmap](ROADMAP.adoc)
+- [Compatibility](docs/compatibility.adoc)
+- [Support policy](docs/support-policy.adoc)
+- [Release process](docs/release-process.adoc)
+- [Architecture decisions](docs/adr/README.adoc)
+- [Contributing](CONTRIBUTING.adoc)
+- [Security policy](SECURITY.md)
+
+User guides:
+
 - [Detailed Matchers Guide](docs/matchers.md)
 - [Response Strategies Cookbook](docs/response-strategies.md)
 - [Initiator Mode Guide](docs/initiator-mode.md)

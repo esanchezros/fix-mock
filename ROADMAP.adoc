@@ -1,0 +1,78 @@
+= FixMock Roadmap
+:toc:
+:toclevels: 2
+
+This roadmap describes the intended direction of FixMock. It is not a promise of release dates. GitHub Issues contain the public requirements and acceptance criteria for individual changes.
+
+== Product objective
+
+Provide a stable, reusable black-box FIX integration-testing product for embedded tests, JUnit 5, REST and Docker workflows, downstream QuickFIX/J applications, CI compatibility checks, and release-candidate validation.
+
+== Maintenance principles
+
+* Prove peer-side receipt and interpretation; sender callbacks alone are not transport evidence.
+* Prefer ephemeral ports, callback-driven waits, deterministic teardown, and isolated global state.
+* Support declared QuickFIX/J lines without forcing consumers onto an unexpected version.
+* Test packaged artifacts from consumer builds outside the reactor.
+* Keep AssertJ QuickFIX/J test-scoped and Spring dependencies outside FixMock core.
+* Record durable architectural choices as link:docs/adr/README.adoc[Architecture Decision Records].
+* Track public work in GitHub Issues. Local `tasks/projects/` directories are working notes only.
+
+== Supported lines
+
+[cols="1,2,3"]
+|===
+|Line |Status |Scope
+
+|`main` / `0.2.x`
+|Active development
+|QuickFIX/J 2.3.2 and 3.0.2 compatibility, release hardening, and public testing APIs.
+
+|`0.1.x`
+|Maintenance until 0.2.0
+|Release-blocking fixes and security corrections only.
+|===
+
+See link:docs/support-policy.adoc[Support Policy] and link:docs/compatibility.adoc[Compatibility].
+
+== Planned milestones
+
+=== 0.2.0 - Release foundation
+
+* Support QuickFIX/J 2.3.2 and 3.0.2 from one FixMock artifact.
+* Keep QuickFIX/J consumer-selected and remove private distribution dependencies.
+* Add ephemeral FIX ports and selected-port APIs.
+* Make recorded-message access thread-safe with defined ordering and defensive values.
+* Make start, readiness, reset, stop, and delayed responses deterministic.
+* Verify FIX 4.4 peer receipt in initiator and acceptor directions.
+* Strengthen the JUnit 5 extension and dynamic REST/FIX port behavior.
+* Add dependency convergence, coverage, API compatibility, CI matrix, and packaged-consumer gates.
+* Publish onboarding, compatibility, migration, and release documentation.
+
+=== 0.3.0 - Interoperability and protocol depth
+
+* Add the external Spring Boot starter interoperability fixture.
+* Cover FIX 4.2 and FIXT 1.1 with FIX 5.0 SP2.
+* Cover reconnect, session reject, business reject, resend, sequence gap/reset, multiple sessions, and shutdown races.
+* Complete REST send, structured error, health, readiness, and Docker contract coverage.
+* Remove remaining fixed ports and sleeps from deterministic test paths.
+
+=== 0.4.0 - Product hardening
+
+* Establish scheduled leak, soak, compatibility, and performance baselines.
+* Expand packaged consumer examples and copyable testing recipes.
+* Ratchet coverage and API compatibility policies.
+* Review REST versioning and long-term extension points based on user feedback.
+
+== Ecosystem dependencies
+
+AssertJ QuickFIX/J provides semantic assertions for recorded QuickFIX/J messages. The QuickFIX/J Spring Boot Starter consumes released FixMock and AssertJ QuickFIX/J artifacts in test scope. Repositories remain independently buildable and do not create circular source dependencies.
+
+== How work is selected
+
+* `P0`: active security issue, data exposure, or release-blocking regression.
+* `P1`: reliability or compatibility work required for the next milestone.
+* `P2`: valuable testing, documentation, API, or maintainability improvement.
+* `P3`: exploratory or low-demand improvement.
+
+Each implementation issue identifies compatibility impact, acceptance criteria, test evidence, documentation needs, release impact, and rollback considerations.
