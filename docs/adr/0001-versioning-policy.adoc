@@ -1,0 +1,26 @@
+= ADR 0001: Versioning policy
+
+== Status
+
+Accepted
+
+== Context
+
+FixMock is a public testing product with Java APIs, Maven coordinates, REST behavior, Docker usage, and compatibility promises. Pre-1.0 versions still need predictable change communication.
+
+== Decision
+
+FixMock follows semantic-versioning intent. Compatible features increment the minor version, compatible fixes increment the patch version, and intentional incompatible changes require explicit migration guidance. After 1.0, incompatible public-contract changes require a major version.
+
+Supported Java and QuickFIX/J combinations are declared separately in link:../compatibility.adoc[the compatibility table].
+
+== Consequences
+
+* Releases document Java, QuickFIX/J, REST, Docker, and JUnit baselines.
+* Behavior changes include compatibility assessments and migration notes.
+* API compatibility is checked against the previous public release.
+* Pre-1.0 does not mean undocumented or arbitrary breakage.
+
+== Alternatives considered
+
+Treat every pre-1.0 release as freely breaking. Rejected because downstream integration suites need stable, reviewable upgrades.

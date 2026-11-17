@@ -1,0 +1,30 @@
+= ADR 0002: QuickFIX/J dependency model
+
+== Status
+
+Accepted
+
+== Context
+
+FixMock must support QuickFIX/J 2.3.x and 3.0.x without forcing downstream applications onto an unexpected engine version. QuickFIX/J types are part of the public testing API.
+
+== Decision
+
+Publish one FixMock artifact compiled against the compatibility baseline. Declare QuickFIX/J dependencies optional and require consumers to select `quickfixj-core` plus the required message modules. Verify the packaged artifact against every supported QuickFIX/J line.
+
+== Consequences
+
+* Applications control the engine version in their test dependency graph.
+* FixMock documentation must show the explicit QuickFIX/J dependency.
+* CI and consumer fixtures must catch binary incompatibilities across supported lines.
+* Unsupported engine lines fail clearly rather than relying on private reflective access.
+
+== Alternatives considered
+
+Publish separate FixMock artifacts for each QuickFIX/J line. Rejected while one artifact remains compatible because it increases release and consumer complexity.
+
+Transitively pin one QuickFIX/J version. Rejected because it can silently alter an application runtime.
+
+== Verification
+
+Packaged-consumer tests run with QuickFIX/J 2.3.2 and 3.0.2.

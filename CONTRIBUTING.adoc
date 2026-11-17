@@ -1,0 +1,65 @@
+= Contributing
+
+Thank you for helping maintain FixMock.
+
+== Before starting
+
+* Search existing GitHub Issues and pull requests.
+* For a substantial or potentially breaking change, open an issue before implementation.
+* Read link:ROADMAP.adoc[the roadmap], link:docs/support-policy.adoc[the support policy], and relevant link:docs/adr/README.adoc[ADRs].
+* Do not disclose suspected vulnerabilities in a public issue. Follow link:SECURITY.md[the security policy].
+
+== Public and local planning
+
+GitHub Issues are the public source of truth for requirements, acceptance criteria, and delivery status.
+
+Maintainers may use ignored `tasks/projects/<project-name>/` directories for investigation notes and implementation plans. Important requirements and decisions must be copied to a GitHub Issue, tracked documentation, or an ADR before work is complete.
+
+== Development setup
+
+The active line requires Java 17 or later and Maven. Run the complete verification lifecycle before submitting a pull request:
+
+[source,shell]
+----
+mvn --batch-mode verify
+----
+
+Compatibility-sensitive work must also exercise the supported QuickFIX/J 2.3.2 and 3.0.2 lanes.
+
+== Branches
+
+Use a short branch name for one independently reviewable change:
+
+* `fix/<issue>-<description>`
+* `feat/<issue>-<description>`
+* `test/<issue>-<description>`
+* `docs/<issue>-<description>`
+* `chore/<issue>-<description>`
+
+== Pull requests
+
+Keep pull requests focused. Include:
+
+* The user or maintainer problem being solved.
+* Compatibility impact on Java APIs, QuickFIX/J lines, dependencies, REST, JUnit, and lifecycle behavior.
+* Tests that demonstrate peer-side transport behavior where applicable.
+* Documentation and release-note updates.
+* Rollback considerations for behavior or dependency changes.
+
+Do not reference internal planning labels or local `tasks/` files in production code or comments.
+
+== Tests
+
+Use the smallest suitable test layer:
+
+* Unit tests for isolated matching, stubbing, and lifecycle behavior.
+* Embedded transport tests for real QuickFIX/J sessions.
+* REST tests for the standalone contract.
+* Packaged-consumer tests for dependency and public-contract verification.
+* Scheduled tests for compatibility, reconnect, leak, and soak scenarios.
+
+Transport tests must verify receipt at the peer, not only the sender callback. Avoid fixed ports and sleeps. Clean up sessions, connectors, sockets, servers, executors, and global test state.
+
+== Releases
+
+Only a maintainer publishes Maven artifacts, tags a release, or publishes a GitHub release. See link:docs/release-process.adoc[the release process].

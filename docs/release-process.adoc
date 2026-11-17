@@ -1,0 +1,55 @@
+= Release Process
+
+This document defines FixMock release controls.
+
+== Release ownership
+
+Only a maintainer publishes artifacts, creates release tags, or marks a GitHub release final. Pull requests and automated agents must not publish or tag releases without explicit maintainer approval.
+
+== Release preparation
+
+. Confirm the target branch and milestone.
+. Confirm all milestone issues are closed or explicitly deferred.
+. Review compatibility, API changes, dependency changes, and migration guidance.
+. Update README, compatibility documentation, changelog, and release notes.
+. Run the complete verification matrix from a clean checkout.
+. Verify packaged consumers and any ecosystem interoperability fixtures required by the target milestone.
+. Confirm Maven coordinates, POMs, sources, Javadocs, signatures, checksums, and license metadata.
+. Prepare the release version and next development version without publishing.
+
+The canonical local command is:
+
+[source,shell]
+----
+mvn --batch-mode verify
+----
+
+== Required release evidence
+
+The release pull request records:
+
+* Supported Java and QuickFIX/J matrix results.
+* Peer-side transport results in both roles.
+* JUnit, REST, Docker, and lifecycle results.
+* Packaged-consumer results and required ecosystem interoperability results, with explicit deferrals recorded.
+* Binary and source compatibility results.
+* Dependency convergence and Central-only dependency resolution.
+* Source, Javadoc, signature, checksum, and license inspection.
+* Documentation and migration review.
+
+== Maven Central
+
+The maintainer performs or explicitly approves Maven Central publication. Credentials stay in protected release infrastructure or maintainer settings and are never committed. Staged artifacts must be inspected before publication becomes final.
+
+== After publication
+
+. Resolve the released artifacts from a fresh Maven repository.
+. Verify the published POM, sources, Javadocs, signatures, and checksums.
+. Create the signed or annotated Git tag.
+. Publish the GitHub release and release notes.
+. Update README version examples and compatibility documentation.
+. Advance the development version.
+
+== Failed releases
+
+Published Maven artifacts are immutable and must not be replaced. If an artifact is defective, stop the process, document the failure, and publish a corrected patch after verification and approval.

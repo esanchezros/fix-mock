@@ -1,0 +1,41 @@
+= Compatibility
+
+FixMock declares explicit Java and QuickFIX/J release gates. Consumers select the QuickFIX/J runtime so FixMock does not unexpectedly upgrade an application engine.
+
+== Current matrix
+
+[cols="1,1,2,2"]
+|===
+|FixMock line |Minimum Java |QuickFIX/J |Status
+
+|`0.2.x`
+|17
+|`2.3.2` and `3.0.2`
+|In development on `main`
+
+|`0.1.x`
+|17
+|Built with `2.3.1`
+|Latest published line
+|===
+
+Other 2.3.x and 3.0.x patches may work, but they are not release-gate claims until added to the matrix.
+
+== Verification policy
+
+Each maintained line should verify:
+
+* Its minimum Java version and a current Long-Term Support Java version.
+* Every declared QuickFIX/J baseline.
+* Embedded acceptor and initiator transport in both directions.
+* JUnit extension and REST/Docker public contracts.
+* Packaged consumers resolving public dependencies only.
+* Binary and source compatibility with the previous public release.
+* Dependency convergence and optional-dependency behavior.
+* Deterministic cleanup of sessions, sockets, servers, and executors.
+
+== Dependency model
+
+FixMock core and JUnit artifacts declare QuickFIX/J as optional. Consumers add `quickfixj-core` and the message modules required by their application, normally in test scope. AssertJ QuickFIX/J is used only by FixMock tests and examples.
+
+A dependency upgrade can be incompatible even when the Java API is unchanged. Release notes identify changes to Java, QuickFIX/J, REST, Docker, and test-framework baselines.

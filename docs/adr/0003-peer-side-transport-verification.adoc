@@ -1,0 +1,29 @@
+= ADR 0003: Peer-side transport verification
+
+== Status
+
+Accepted
+
+== Context
+
+A sender callback proves that an application attempted to send a FIX message. It does not prove that the counterparty received, parsed, or interpreted the message.
+
+== Decision
+
+Release-gate transport tests verify messages at the peer callback or peer recorded-message store. Tests cover both QuickFIX/J initiator to FixMock acceptor and FixMock initiator to QuickFIX/J acceptor directions.
+
+Tests use ephemeral ports, bounded callback-driven waits, in-memory stores where practical, and deterministic cleanup. AssertJ QuickFIX/J provides semantic assertions in test scope.
+
+== Consequences
+
+* Sender-only assertions are insufficient for transport acceptance criteria.
+* Public recorded messages remain normal defensive QuickFIX/J `Message` values.
+* Pull-request smoke tests stay small; reconnect, compatibility, leak, and soak scenarios can run on scheduled or release workflows.
+
+== Alternatives considered
+
+Assert only the sender `toApp` callback. Rejected because it cannot detect transport, session, parsing, or counterparty failures.
+
+== Verification
+
+The FIX 4.4 smoke gate logs on, exchanges NewOrderSingle and ExecutionReport messages, asserts peer receipt, logs out, and shuts down cleanly in both directions.

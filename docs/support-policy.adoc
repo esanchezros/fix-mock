@@ -1,0 +1,40 @@
+= Support Policy
+
+This policy explains which FixMock releases receive changes and how compatibility changes are handled while the project remains pre-1.0.
+
+== Supported release lines
+
+[cols="1,1,3"]
+|===
+|Line |Status |Maintenance policy
+
+|`0.2.x`
+|Active development
+|Receives compatibility, reliability, API, documentation, security, and release-hardening work.
+
+|`0.1.x`
+|Maintenance until 0.2.0
+|Receives release-blocking or security fixes where practical.
+|===
+
+After 0.2.0, the latest minor line receives active maintenance. A previous minor can receive critical fixes for a short migration window announced in release notes.
+
+== Compatibility commitments
+
+Within a maintained minor line, the project aims to preserve:
+
+* Maven coordinates and module names.
+* Public Java APIs.
+* Documented builder, JUnit, REST, and Docker behavior.
+* Supported Java and QuickFIX/J combinations.
+* Recorded-message ordering and lifecycle semantics.
+
+A bug or security fix can require a behavior change. Such changes include tests, release notes, and an explicit compatibility assessment.
+
+== Deprecation policy
+
+When practical, a replacement is introduced before a public API or behavior is removed. Deprecations are documented in Javadoc and release notes. Removal normally occurs only in a later minor before 1.0, with migration guidance.
+
+== Reporting problems
+
+Use GitHub Issues for reproducible bugs, compatibility regressions, and feature requests. Follow link:../SECURITY.md[SECURITY.md] for vulnerabilities that should not be disclosed publicly.
