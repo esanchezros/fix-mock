@@ -51,6 +51,7 @@ The default is `PER_CLASS`. For an instance per method, construct the extension 
 
 - Switch to initiator role by supplying `FixMockServerOptions.builder().role(INITIATOR)...`.
 - Enable dictionary-aware parsing with `useDataDictionary(true)`; omit `.dictionary(...)` to use bundled defaults by begin-string.
+- Custom dictionary XML files must be self-contained because QuickFIX/J blocks external DTD and schema access.
 
 #### Troubleshooting
 
