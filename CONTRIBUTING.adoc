@@ -21,7 +21,7 @@ The active line requires Java 17 or later and Maven. Run the complete verificati
 
 [source,shell]
 ----
-mvn --batch-mode verify
+mvn --batch-mode clean verify
 ----
 
 Compatibility-sensitive work must also exercise the supported QuickFIX/J 2.3.2 and 3.0.2 lanes.

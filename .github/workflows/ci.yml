@@ -9,12 +9,20 @@ on:
     - cron: "17 3 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - java: "17"
@@ -25,21 +33,16 @@ jobs:
             quickfixj: "3.0.2"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: ${{ matrix.java }}
         distribution: 'temurin'
         cache: maven
 
-    - name: Pull-request smoke with QuickFIX/J ${{ matrix.quickfixj }}
-      if: github.event_name == 'pull_request'
-      run: mvn --batch-mode clean verify -pl fix-mock-junit,fix-mock-server -am -Dquickfixj.version=${{ matrix.quickfixj }}
-
     - name: Full verification with QuickFIX/J ${{ matrix.quickfixj }}
-      if: github.event_name != 'pull_request'
       run: mvn --batch-mode clean verify -Dquickfixj.version=${{ matrix.quickfixj }}
 
     - name: Verify packaged-artifact consumer
