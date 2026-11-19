@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated AssertJ QuickFIX/J test and example dependencies to 1.1.0.
+
 ## [0.2.0] - 2026-11-17
 
 ### Added
