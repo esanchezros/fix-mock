@@ -8,16 +8,20 @@ This policy explains which FixMock releases receive changes and how compatibilit
 |===
 |Line |Status |Maintenance policy
 
-|`0.2.x`
+|`main` / `0.3.x`
 |Active development
-|Receives compatibility, reliability, API, documentation, security, and release-hardening work.
+|Receives compatible feature, reliability, API, documentation, security, and release-hardening work for the next minor release.
+
+|`0.2.x`
+|Current release
+|Receives compatibility, reliability, documentation, security, and release-blocking fixes.
 
 |`0.1.x`
-|Maintenance until 0.2.0
-|Receives release-blocking or security fixes where practical.
+|Unsupported
+|Superseded by 0.2.0. Consumers should upgrade to a maintained line.
 |===
 
-After 0.2.0, the latest minor line receives active maintenance. A previous minor can receive critical fixes for a short migration window announced in release notes.
+The latest published minor line receives active maintenance. A previous minor can receive critical fixes for a short migration window announced in release notes.
 
 == Compatibility commitments
 

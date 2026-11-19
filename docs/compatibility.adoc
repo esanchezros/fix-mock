@@ -8,6 +8,11 @@ FixMock declares explicit Java and QuickFIX/J release gates. Consumers select th
 |===
 |FixMock line |Minimum Java |QuickFIX/J |Status
 
+|`main` / `0.3.x`
+|17
+|`2.3.2` and `3.0.2`
+|Development line
+
 |`0.2.x`
 |17
 |`2.3.2` and `3.0.2`
@@ -16,7 +21,7 @@ FixMock declares explicit Java and QuickFIX/J release gates. Consumers select th
 |`0.1.x`
 |17
 |Built with `2.3.1`
-|Previous release line
+|Unsupported; superseded by 0.2.0
 |===
 
 Other 2.3.x and 3.0.x patches may work, but they are not release-gate claims until added to the matrix.

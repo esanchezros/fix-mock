@@ -9,6 +9,7 @@ The main link:../README.md[README] is the quickest introduction to FixMock. Exis
 * link:compatibility.adoc[Compatibility]
 * link:release-process.adoc[Release Process]
 * link:release-checklist.md[Release Checklist]
+* link:releases/0.2.0-checklist.md[0.2.0 Release Checklist Archive]
 * link:adr/README.adoc[Architecture Decision Records]
 
 == User guides

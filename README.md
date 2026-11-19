@@ -338,7 +338,7 @@ For the full list of endpoints and query parameters, see the [Standalone Server 
 
 ## Build and compatibility verification
 
-`mvn --batch-mode clean verify` is canonical. Pull requests, main, scheduled, and manual workflows run the complete reactor on QuickFIX/J 2.3.2 and 3.0.2. The packaged consumer is tested outside the reactor, and the `api-compatibility` profile compares core against 0.1.0.
+`mvn --batch-mode clean verify` is canonical. Pull requests, main, scheduled, and manual workflows run the complete reactor on QuickFIX/J 2.3.2 and 3.0.2. The packaged consumer is tested outside the reactor, and the `api-compatibility` profile compares core against the previous public release, currently 0.2.0.
 
 
 ## Documentation
