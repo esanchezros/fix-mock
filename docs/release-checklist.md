@@ -1,12 +1,18 @@
-# FixMock 0.2.0 release checklist
+# Release checklist
 
-Nothing in this checklist authorizes deployment, Central publication, tag creation, tag push, or GitHub release publication. Each action requires explicit maintainer approval.
+Replace `<version>`, `<next-version>`, and `<previous-version>` with the intended values. Nothing in this checklist authorizes deployment, Central publication, tag creation, tag push, or GitHub release publication. Each action requires explicit maintainer approval.
+
+## Release preparation
+
+- [ ] Create `release/<version>` from a green `main` branch.
+- [ ] Close milestone issues or explicitly record their deferral.
+- [ ] Set the parent, all reactor modules, and `consumer-pom.xml` to `<version>`.
+- [ ] Set the published POM SCM tag and README examples to `<version>`.
+- [ ] Finalize a dated changelog section and compatibility or migration notes.
+- [ ] Compare the public API with `<previous-version>`.
 
 ## Release gates
 
-- [ ] Milestone issues are closed or explicitly deferred.
-- [ ] The parent, all reactor modules, `consumer-pom.xml`, README examples, and changelog use the intended release version.
-- [ ] The published POM SCM tag is `0.2.0`.
 - [ ] `mvn --batch-mode clean verify` passes with QuickFIX/J 2.3.2.
 - [ ] The same command passes with `-Dquickfixj.version=3.0.2`.
 - [ ] CI passes Java 17 with both QuickFIX/J versions and Java 25 with QuickFIX/J 3.0.2.
@@ -15,14 +21,13 @@ Nothing in this checklist authorizes deployment, Central publication, tag creati
 - [ ] The packaged consumer passes for both QuickFIX/J versions.
 - [ ] Dependency convergence passes.
 - [ ] Core JaCoCo line coverage remains at or above 80 percent.
-- [ ] japicmp reports no binary or source incompatibility with 0.1.0.
+- [ ] japicmp reports no binary or source incompatibility with `<previous-version>`.
 - [ ] `mvn --batch-mode -Prelease -Dgpg.skip=true clean verify` produces valid main, source, and Javadoc artifacts.
 - [ ] The release profile rejects SNAPSHOT project versions and dependencies.
 - [ ] Normal verification does not load the Central publishing extension.
-- [ ] POM metadata, licenses, checksums, signatures, Maven coordinates, and dependency scopes are reviewed.
+- [ ] POM metadata, licenses, checksums, signatures, Maven coordinates, dependency scopes, and reproducibility are reviewed.
 - [ ] Central-only dependency resolution and both packaged-consumer lanes pass.
-- [ ] README, compatibility table, changelog, and migration notes are final.
-- [ ] The Spring Boot starter interoperability fixture is explicitly deferred to the 0.3.0 milestone.
+- [ ] Required ecosystem interoperability passes or its milestone deferral is recorded.
 
 ## Approval gates
 
@@ -30,17 +35,17 @@ Nothing in this checklist authorizes deployment, Central publication, tag creati
 - [ ] The exact merged release commit is checked out in a clean worktree.
 - [ ] A signed bundle is created with `-DskipUpload=true` and inspected locally.
 - [ ] The maintainer explicitly approves upload to Central.
-- [ ] The maintainer inspects the validated Central deployment.
-- [ ] The maintainer explicitly approves Central publication.
+- [ ] Central validates the deployment without automatically publishing it.
+- [ ] The maintainer inspects the validated deployment and explicitly approves publication.
 - [ ] Maven Central reports the deployment as `PUBLISHED`.
 - [ ] Published artifacts resolve from a fresh local Maven repository.
-- [ ] The maintainer explicitly approves the signed `0.2.0` tag and push.
+- [ ] The maintainer explicitly approves the signed `<version>` tag and push.
 - [ ] The maintainer explicitly approves the GitHub release.
 
 ## After publication
 
 - [ ] Verify each published POM, main JAR, source JAR, Javadoc JAR, signature, and checksum from Maven Central.
-- [ ] Create and push the approved signed `0.2.0` tag.
+- [ ] Create and push the approved signed `<version>` tag.
 - [ ] Publish the approved GitHub release notes.
-- [ ] Prepare `0.3.0-SNAPSHOT` in a separate pull request.
-- [ ] Update the Spring Boot starter dependency through a separate pull request.
+- [ ] Prepare `<next-version>-SNAPSHOT` in a separate pull request.
+- [ ] Update downstream consumers, including the Spring Boot starter, through separate pull requests.

@@ -24,13 +24,17 @@ Provide a stable, reusable black-box FIX integration-testing product for embedde
 |===
 |Line |Status |Scope
 
-|`main` / `0.2.x`
+|`main` / `0.3.x`
 |Active development
-|QuickFIX/J 2.3.2 and 3.0.2 compatibility, release hardening, and public testing APIs.
+|Spring Boot interoperability, deeper FIX protocol coverage, and REST/Docker contract completion.
+
+|`0.2.x`
+|Maintained release
+|Compatibility, reliability, security, and release-blocking fixes for the current public line.
 
 |`0.1.x`
-|Maintenance until 0.2.0
-|Release-blocking fixes and security corrections only.
+|Unsupported
+|Superseded by 0.2.0; upgrade to a maintained release.
 |===
 
 See link:docs/support-policy.adoc[Support Policy] and link:docs/compatibility.adoc[Compatibility].

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated AssertJ QuickFIX/J test and example dependencies to 1.1.0.
+- Advanced API compatibility checks to the published 0.2.0 baseline.
+- Updated the roadmap and support documentation for 0.3.0 development and archived the 0.2.0 release checklist.
 
 ## [0.2.0] - 2026-11-17
 

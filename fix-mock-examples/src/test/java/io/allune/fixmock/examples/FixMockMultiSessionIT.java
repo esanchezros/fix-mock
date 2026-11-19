@@ -118,6 +118,8 @@ public class FixMockMultiSessionIT {
 
 		// Wait for both sessions to log on
 		assertTrue(((SimpleFixMockServer) server).awaitLogon(Duration.ofSeconds(5)), "Sessions should log on");
+		assertTrue(app1.awaitLogon(5, TimeUnit.SECONDS), "Session 1 initiator should log on");
+		assertTrue(app2.awaitLogon(5, TimeUnit.SECONDS), "Session 2 initiator should log on");
 
 		// Send from app1
 		sendNOS(initiator1, "CLIENT1", "BROKER1", "AAPL");
@@ -180,6 +182,7 @@ public class FixMockMultiSessionIT {
 	}
 
 	static class CapturingApp extends MessageCracker implements Application {
+		private final CountDownLatch logonLatch = new CountDownLatch(1);
 		private final CountDownLatch latch = new CountDownLatch(1);
 		private volatile Message lastMsg;
 		private final String sender;
@@ -195,8 +198,12 @@ public class FixMockMultiSessionIT {
 			return lastMsg;
 		}
 
+		boolean awaitLogon(long timeout, TimeUnit unit) throws InterruptedException {
+			return logonLatch.await(timeout, unit);
+		}
+
 		@Override public void onCreate(SessionID sessionId) {}
-		@Override public void onLogon(SessionID sessionId) {}
+		@Override public void onLogon(SessionID sessionId) { logonLatch.countDown(); }
 		@Override public void onLogout(SessionID sessionId) {}
 		@Override public void toAdmin(Message message, SessionID sessionId) {}
 		@Override public void fromAdmin(Message message, SessionID sessionId) {}

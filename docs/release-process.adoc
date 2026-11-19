@@ -31,13 +31,13 @@ mvn --batch-mode versions:set \
 
 Update the external `consumer-pom.xml` fixture to consume the same release version. Confirm the published POM SCM tag, README examples, changelog, and compatibility documentation use the intended version.
 
-For FixMock 0.2.0, confirm:
+For each release, confirm:
 
-* The parent and all five reactor modules use `0.2.0`.
-* `consumer-pom.xml` consumes `0.2.0`.
-* The published POM SCM tag is `0.2.0`.
-* README installation examples use `0.2.0`.
-* The changelog contains a dated `0.2.0` section.
+* The parent and all five reactor modules use the intended release version.
+* `consumer-pom.xml` consumes the intended release version.
+* The published POM SCM tag is the intended release version.
+* README installation examples use the intended release version.
+* The changelog contains a dated section for the intended release version.
 
 == Verification
 
@@ -50,7 +50,7 @@ mvn --batch-mode clean verify -Dquickfixj.version=3.0.2
 mvn --batch-mode -Prelease -Dgpg.skip=true clean verify
 ----
 
-Record Java 17 and 25 results with QuickFIX/J 2.3.2 and 3.0.2; peer-side transport results in both roles; JUnit, REST, lifecycle, example, and integration results; packaged-consumer results; dependency convergence; 80 percent core line coverage; japicmp compatibility with 0.1.0; source and Javadoc archives; and required ecosystem interoperability results. Record explicit deferrals for fixtures assigned to later milestones.
+Record Java 17 and 25 results with QuickFIX/J 2.3.2 and 3.0.2; peer-side transport results in both roles; JUnit, REST, lifecycle, example, and integration results; packaged-consumer results; dependency convergence; 80 percent core line coverage; japicmp compatibility with the previous public release; source and Javadoc archives; and required ecosystem interoperability results. Record explicit deferrals for fixtures assigned to later milestones.
 
 The release profile rejects SNAPSHOT project versions and SNAPSHOT dependencies. Normal verification must not resolve the release-only Central publishing extension.
 
@@ -95,15 +95,15 @@ After Central reports `PUBLISHED`:
 
 [source,shell]
 ----
-git tag -s 0.2.0 -m "FixMock 0.2.0"
-git push origin 0.2.0
+git tag -s <version> -m "FixMock <version>"
+git push origin <version>
 ----
 
 Create the GitHub release from the tag and finalized changelog. Resolve the released POMs and all published JARs from Maven Central using a fresh local Maven repository.
 
 == Next development iteration
 
-Set the parent, reactor modules, and external consumer fixture to the next development version, normally `0.3.0-SNAPSHOT`, in a separate pull request. Keep README installation examples on the latest published release until the next release.
+Set the parent, reactor modules, and external consumer fixture to the next development SNAPSHOT in a separate pull request. Keep README installation examples on the latest published release until the next release.
 
 Update the Spring Boot starter through a separate dependency pull request and run its compatibility workflow against the released artifacts.
 
