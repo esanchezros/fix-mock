@@ -72,7 +72,7 @@ FixMock intentionally declares QuickFIX/J as optional. Add either `2.3.2` or `3.
 <dependency>
     <groupId>io.allune</groupId>
     <artifactId>assertj-quickfixj</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
