@@ -44,13 +44,15 @@ public class FixMockInitiatorIT {
 
 	private static FixMockServer server;
 	private static Initiator initiator;
+	private static int serverPort;
 
 	@BeforeAll
 	static void startServer() {
 		// Start FixMock as Acceptor (server side)
-		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", 9899);
+		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", 0);
 		server.start();
 		assertTrue(server.isRunning(), "Server should be running");
+		serverPort = server.getPort();
 	}
 
 	@AfterAll
@@ -67,15 +69,14 @@ public class FixMockInitiatorIT {
 	void initiatorSendsNewOrderSingle_and_serverVerifiesReceipt() throws Exception {
 		// Configure and start a minimal QuickFIX/J Initiator
 		Application app = new AppThatSendsOnce();
-		SessionSettings settings = initiatorSettings();
+		SessionSettings settings = initiatorSettings(serverPort);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
 
-		// Wait up to a few seconds for logon and message exchange
-		Thread.sleep(2000);
+		server.awaitMessage(messageType("D").withTagEquals(55, "AAPL"), Duration.ofSeconds(5));
 
 		// Verify on the server side: at least 1 message with 35=D and tag 55=AAPL within 5 seconds
 		CountMatchingStrategy count = atLeast(1);
@@ -83,7 +84,7 @@ public class FixMockInitiatorIT {
 		server.verify(count, window, messageType("D").withTagEquals(55, "AAPL"));
 	}
 
-	private static SessionSettings initiatorSettings() throws ConfigError {
+	private static SessionSettings initiatorSettings(int port) throws ConfigError {
 		Properties defaults = new Properties();
 		defaults.setProperty(SessionFactory.SETTING_CONNECTION_TYPE, "initiator");
 		defaults.setProperty(Initiator.SETTING_RECONNECT_INTERVAL, "2");
@@ -98,7 +99,7 @@ public class FixMockInitiatorIT {
 		settings.set(defaults);
 		settings.setString(sessionID, SessionFactory.SETTING_CONNECTION_TYPE, "initiator");
 		settings.setString(sessionID, SocketInitiator.SETTING_SOCKET_CONNECT_HOST, "127.0.0.1");
-		settings.setString(sessionID, SocketInitiator.SETTING_SOCKET_CONNECT_PORT, "9899");
+		settings.setString(sessionID, SocketInitiator.SETTING_SOCKET_CONNECT_PORT, Integer.toString(port));
 		settings.setString(sessionID, "UseDataDictionary", "N");
 		settings.setString(sessionID, "HeartBtInt", "30");
 		settings.setString(sessionID, "StartTime", "00:00:00");

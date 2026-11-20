@@ -50,10 +50,11 @@ public class FixMockSessionManagementIT {
 
 	@Test
 	void session_management_logon_testrequest_heartbeat_logout() throws Exception {
-		int port = 9917;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		SessionFlowApp app = new SessionFlowApp();
 		initiator = startInitiator(app, "CLIENT", "BROKER", port);
@@ -66,9 +67,10 @@ public class FixMockSessionManagementIT {
 
 	@Test
 	void explicit_admin_stubbing_test_request() throws Exception {
-		int port = 9918;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
+		port = server.getPort();
 
 		// Stub explicit TestRequest(35=1) -> Heartbeat(35=0) with custom TestReqID
 		String testReqId = "CUSTOM-ID";
@@ -86,14 +88,13 @@ public class FixMockSessionManagementIT {
 		server.verify(exactly(1), adminMessageRequestedFor().messageType("0").withTag(112, testReqId));
 	}
 
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 

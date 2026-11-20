@@ -55,10 +55,11 @@ public class FixMockResponseStrategiesIT {
 
 	@Test
 	void templated_response_copies_ClOrdID_and_Symbol() throws Exception {
-		int port = 9906;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Build templated ER supplier (fresh ER per request)
 		FixMock.ResponseTemplateBuilder response = FixMock.respondWithTemplate(() -> new ExecutionReport(
@@ -86,10 +87,11 @@ public class FixMockResponseStrategiesIT {
 
 	@Test
 	void delayed_response_waits_at_least_configured_time() throws Exception {
-		int port = 9907;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		long configuredDelayMs = 400;
 
@@ -106,23 +108,21 @@ public class FixMockResponseStrategiesIT {
 		CapturingApp app = new CapturingApp("AAPL");
 		initiator = startInitiator(app, "CLIENT", "BROKER", port);
 
-		long start = System.currentTimeMillis();
 		Message er = app.awaitAppMessage(5, TimeUnit.SECONDS);
-		long elapsed = System.currentTimeMillis() - start;
+		long elapsed = TimeUnit.NANOSECONDS.toMillis(app.getResponseNanos() - app.getRequestNanos());
 
 		assertNotNull(er, "Expected ExecutionReport");
 		assertTrue(elapsed >= configuredDelayMs - 50, "Response should be delayed (~" + configuredDelayMs + "ms), elapsed=" + elapsed);
 	}
 
 	// --- Initiator wiring and helpers ---
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 
@@ -155,10 +155,14 @@ public class FixMockResponseStrategiesIT {
 		private final CountDownLatch appLatch = new CountDownLatch(1);
 		private volatile Message lastAppMessage;
 		private volatile String lastSentClOrdId;
+		private volatile long requestNanos;
+		private volatile long responseNanos;
 
 		CapturingApp(String symbol) { this.symbolToSend = symbol; }
 
 		String getLastSentClOrdId() { return lastSentClOrdId; }
+		long getRequestNanos() { return requestNanos; }
+		long getResponseNanos() { return responseNanos; }
 
 		Message awaitAppMessage(long time, TimeUnit unit) throws InterruptedException {
 			if (!appLatch.await(time, unit)) return null;
@@ -176,6 +180,7 @@ public class FixMockResponseStrategiesIT {
 						new OrdType(OrdType.MARKET)
 				);
 				nos.set(new Symbol(symbolToSend));
+				requestNanos = System.nanoTime();
 				Session.sendToTarget(nos, sessionId);
 			} catch (Exception ignored) {}
 		}
@@ -183,6 +188,10 @@ public class FixMockResponseStrategiesIT {
 		@Override public void toAdmin(Message message, SessionID sessionId) {}
 		@Override public void fromAdmin(Message message, SessionID sessionId) {}
 		@Override public void toApp(Message message, SessionID sessionId) {}
-		@Override public void fromApp(Message message, SessionID sessionId) { lastAppMessage = message; appLatch.countDown(); }
+		@Override public void fromApp(Message message, SessionID sessionId) {
+			responseNanos = System.nanoTime();
+			lastAppMessage = message;
+			appLatch.countDown();
+		}
 	}
 }

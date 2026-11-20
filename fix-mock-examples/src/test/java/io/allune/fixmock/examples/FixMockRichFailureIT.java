@@ -22,6 +22,7 @@ import quickfix.*;
 import quickfix.field.*;
 import quickfix.fix44.NewOrderSingle;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.UUID;
@@ -39,14 +40,18 @@ public class FixMockRichFailureIT {
 
 	@Test
 	void failure_shows_tag_level_diff() throws Exception {
-		int port = 9940;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
+		port = server.getPort();
 
 		// Initiator sends a NOS for MSFT
 		initiator = startInitiator("CLIENT", "BROKER", port, "MSFT");
-		assertTrue(((SimpleFixMockServer) server).awaitLogon(java.time.Duration.ofSeconds(5)), "Should log on");
-		Thread.sleep(1000);
+		server.awaitMessage(appMessageRequestedFor().messageType("D").withTagName("Symbol", equalTo("MSFT")),
+				Duration.ofSeconds(5));
+		server.verify(atLeast(1), within(Duration.ofSeconds(5)), appMessageRequestedFor()
+				.messageType("D")
+				.withTagName("Symbol", equalTo("MSFT")));
 
 		// We verify for AAPL
 		AssertionError error = assertThrows(AssertionError.class, () -> 
@@ -64,7 +69,7 @@ public class FixMockRichFailureIT {
 		assertTrue(msg.contains("Full message:"), "Should show pretty-printed message");
 	}
 
-	private static Initiator startInitiator(String sender, String target, int port, String symbol) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(String sender, String target, int port, String symbol) throws ConfigError {
 		SessionSettings settings = new SessionSettings();
 		Properties defaults = new Properties();
 		defaults.setProperty(SessionFactory.SETTING_CONNECTION_TYPE, "initiator");

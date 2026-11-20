@@ -57,10 +57,11 @@ public class FixMockNegativeIT {
 
 	@Test
 	void stub_businessMessageReject_on_invalid_symbol_and_assert_initiator_receives_j() throws Exception {
-		int port = 9904;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Pattern: NOS for BLACKLISTED symbol -> respond with BMR (35=j)
 		server.stubFor(when(
@@ -70,11 +71,8 @@ public class FixMockNegativeIT {
 		).willReturn(businessReject("D", "Symbol not allowed", BusinessRejectReason.OTHER)));
 
 		// Initiator that captures incoming app/admin messages
-		CapturingApp app = new CapturingApp();
+		CapturingApp app = new CapturingApp("BAD");
 		initiator = startInitiator(app, "CLIENT", "BROKER", port);
-
-		// Send one NOS with BAD symbol
-		sendNOS(app.getSessionIdLatch(), "BAD");
 
 		// Expect BMR in fromApp (35=j) within 5 seconds
 		Message m = app.awaitAppMessage(5, TimeUnit.SECONDS);
@@ -89,21 +87,19 @@ public class FixMockNegativeIT {
 
 	@Test
 	void stub_session_reject_on_any_nos_and_assert_initiator_receives_3() throws Exception {
-		int port = 9905;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Pattern: any NOS -> respond with session-level Reject (35=3)
 		server.stubFor(when(
 				FixMock.appMessageRequestedFor().messageType("D")
 		).willReturn(sessionReject(1, "Invalid tag specified")));
 
-		CapturingApp app = new CapturingApp();
+		CapturingApp app = new CapturingApp("MSFT");
 		initiator = startInitiator(app, "CLIENT", "BROKER", port);
-
-		// Send one NOS with MSFT
-		sendNOS(app.getSessionIdLatch(), "MSFT");
 
 		// Expect Reject in fromAdmin (35=3) within 5 seconds
 		Message admin = app.awaitAdminMessageType3(5, TimeUnit.SECONDS);
@@ -137,14 +133,13 @@ public class FixMockNegativeIT {
 	}
 
 	// --- Initiator wiring and helpers ---
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 
@@ -171,15 +166,9 @@ public class FixMockNegativeIT {
 		return settings;
 	}
 
-	private static void sendNOS(CountDownLatch sessionIdLatch, String symbol) throws InterruptedException {
-		// Wait for session to be known in app (logon)
-		assertTrue(sessionIdLatch.await(5, TimeUnit.SECONDS), "Session not ready for send");
-	}
-
-	/** Application that captures inbound admin and app messages and exposes session id for sending. */
+	/** Application that sends one order on logon and captures inbound admin and app messages. */
 	static class CapturingApp extends MessageCracker implements Application {
-		private volatile SessionID currentSessionId;
-		private final CountDownLatch sessionIdLatch = new CountDownLatch(1);
+		private final String symbol;
 		private final CountDownLatch appLatch = new CountDownLatch(1);
 		private final CountDownLatch adminLatch = new CountDownLatch(1);
 		private final CountDownLatch adminType3Latch = new CountDownLatch(1);
@@ -187,7 +176,7 @@ public class FixMockNegativeIT {
 		private volatile Message lastAdminMessage;
 		private volatile Message lastAdminType3;
 
-		CountDownLatch getSessionIdLatch() { return sessionIdLatch; }
+		CapturingApp(String symbol) { this.symbol = symbol; }
 
 		Message awaitAppMessage(long time, TimeUnit unit) throws InterruptedException {
 			if (!appLatch.await(time, unit)) return null;
@@ -207,9 +196,7 @@ public class FixMockNegativeIT {
 		@Override public void onCreate(SessionID sessionId) {}
 
 		@Override public void onLogon(SessionID sessionId) {
-			this.currentSessionId = sessionId;
-			sessionIdLatch.countDown();
-			// Immediately send a NOS when we log on; specific symbol can be updated by setting a default
+			// Immediately send a NOS when we log on.
 			try {
 				NewOrderSingle nos = new NewOrderSingle(
 						new ClOrdID(UUID.randomUUID().toString()),
@@ -217,8 +204,7 @@ public class FixMockNegativeIT {
 						new TransactTime(LocalDateTime.now()),
 						new OrdType(OrdType.MARKET)
 				);
-				// The symbol will be set later by tests via Session.sendToTarget if desired, but default to BAD for first test
-				nos.set(new Symbol("BAD"));
+				nos.set(new Symbol(symbol));
 				Session.sendToTarget(nos, sessionId);
 			} catch (Exception e) {
 				// ignore in tests

@@ -51,7 +51,7 @@ public class FixMockDictionaryIT {
 
 	@Test
 	void server_with_dictionary_enabled_accepts_messages() throws Exception {
-		int port = 9930;
+		int port = 0;
 		FixMockServerOptions opts = FixMockServerOptions.builder()
 				.role(FixMockServerOptions.Role.ACCEPTOR)
 				.beginString("FIX.4.4")
@@ -64,6 +64,7 @@ public class FixMockDictionaryIT {
 		server = new SimpleFixMockServer(opts);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Initiator sends a valid FIX44 NewOrderSingle that should validate against dictionary
 		Application app = new AppThatSendsOnce();
@@ -74,8 +75,7 @@ public class FixMockDictionaryIT {
 		initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
 
-		Thread.sleep(1500);
-
+		server.awaitMessage(messageType("D"), Duration.ofSeconds(5));
 		server.verify(atLeast(1), within(Duration.ofSeconds(5)), messageType("D"));
 	}
 

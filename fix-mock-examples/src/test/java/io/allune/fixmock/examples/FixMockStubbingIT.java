@@ -58,10 +58,11 @@ public class FixMockStubbingIT {
 
 	@Test
 	void stubbing_staticResponse_and_verify_within_time_window() throws Exception {
-		int port = 9901;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning(), "Server should be running");
+		port = server.getPort();
 
 		// When a NOS with 55=AAPL arrives, respond with a simple ExecutionReport
 		FixMessagePatternBuilder requestPattern = FixMock.appMessageRequestedFor()
@@ -86,8 +87,7 @@ public class FixMockStubbingIT {
 		// Start a minimal initiator that sends one NOS for AAPL
 		initiator = startInitiatorThatSendsNOSOnce("CLIENT", "BROKER", port, "AAPL");
 
-		// Allow time for logon and exchange
-		Thread.sleep(2000);
+		server.awaitMessage(messageType("D").withTag(55, equalTo("AAPL")), Duration.ofSeconds(5));
 
 		// Verify receipt within 5 seconds
 		server.verify(atLeast(1), within(Duration.ofSeconds(5)),
@@ -97,10 +97,11 @@ public class FixMockStubbingIT {
 
 	@Test
 	void stub_priority_more_specific_wins() throws Exception {
-		int port = 9902;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning(), "Server should be running");
+		port = server.getPort();
 
 		// General stub: any NOS -> respond with ER NEW (priority 5)
 		ExecutionReport generalEr = new ExecutionReport(
@@ -131,7 +132,7 @@ public class FixMockStubbingIT {
 		// Start initiator that sends AAPL
 		initiator = startInitiatorThatSendsNOSOnce("CLIENT", "BROKER", port, "AAPL");
 
-		Thread.sleep(2000);
+		server.awaitMessage(messageType("D").withTag(55, equalTo("AAPL")), Duration.ofSeconds(5));
 
 		// We can't easily assert which ER was sent without an opposing client app here,
 		// but we can at least verify the request match was recorded
@@ -142,15 +143,16 @@ public class FixMockStubbingIT {
 
 	@Test
 	void verification_count_strategies_exactly_and_atMost() throws Exception {
-		int port = 9903;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning(), "Server should be running");
+		port = server.getPort();
 
 		// No stubs required; just send one message and verify counts
 		initiator = startInitiatorThatSendsNOSOnce("CLIENT", "BROKER", port, "MSFT");
 
-		Thread.sleep(2000);
+		server.awaitMessage(messageType("D").withTag(55, equalTo("MSFT")), Duration.ofSeconds(5));
 
 		// exactly(1) should pass
 		server.verify(exactly(1), within(Duration.ofSeconds(5)),
@@ -164,7 +166,7 @@ public class FixMockStubbingIT {
 	}
 
 	// --- helpers ---
-	private static Initiator startInitiatorThatSendsNOSOnce(String sender, String target, int port, String symbol) throws ConfigError, InterruptedException {
+	private static Initiator startInitiatorThatSendsNOSOnce(String sender, String target, int port, String symbol) throws ConfigError {
 		Application app = new AppThatSendsOnce(symbol);
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
@@ -172,8 +174,6 @@ public class FixMockStubbingIT {
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		// Give it a moment to logon; tests add further waits before verify
-		Thread.sleep(500);
 		return initiator;
 	}
 
