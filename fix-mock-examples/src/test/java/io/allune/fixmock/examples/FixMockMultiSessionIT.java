@@ -62,8 +62,10 @@ public class FixMockMultiSessionIT {
 
 	@Test
 	void server_handles_two_independent_sessions() throws Exception {
-		int port1 = 9921;
-		int port2 = 9922;
+		int port1 = 0;
+		int port2 = 0;
+		SessionID serverSession1 = new SessionID("FIX.4.4", "BROKER1", "CLIENT1");
+		SessionID serverSession2 = new SessionID("FIX.4.4", "BROKER2", "CLIENT2");
 
 		// Configure mock with TWO sessions
 		FixMockServerOptions options = FixMockServerOptions.builder()
@@ -86,6 +88,8 @@ public class FixMockMultiSessionIT {
 		server = new SimpleFixMockServer(options);
 		server.start();
 		assertTrue(server.isRunning());
+		port1 = server.getPort(serverSession1);
+		port2 = server.getPort(serverSession2);
 
 		// Stub session 1: NOS -> ER(NEW)
 		ExecutionReport er1 = new ExecutionReport(

@@ -23,6 +23,7 @@ import quickfix.*;
 import quickfix.field.*;
 import quickfix.fix44.MarketDataSnapshotFullRefresh;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Properties;
 
@@ -42,7 +43,7 @@ public class FixMockMDEntriesIT {
 
 	@Test
 	void verifies_mdentries_numeric_predicates() throws Exception {
-		int port = 9936;
+		int port = 0;
 		FixMockServerOptions options = FixMockServerOptions.builder()
 				.beginString("FIX.4.4")
 				.senderCompId("BROKER")
@@ -53,6 +54,7 @@ public class FixMockMDEntriesIT {
 		server = new SimpleFixMockServer(options);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		Application app = new MDSnapshotOnLogon();
 		SessionSettings settings = initiatorSettings(port);
@@ -61,13 +63,14 @@ public class FixMockMDEntriesIT {
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		// Allow time for logon and app message to be sent
-		Thread.sleep(1500);
+
+		server.awaitMessage(appMessageRequestedFor().messageType("W"), Duration.ofSeconds(5));
 
 		// Verify we received a MarketDataSnapshot (W) that includes MDEntryPx(270)>100 and MDEntrySize(271) in [10, 1000]
 		// Using name-aware group selector and tag name predicates
 		server.verify(
 				atLeast(1),
+				within(Duration.ofSeconds(5)),
 				appMessageRequestedFor()
 						.messageType("W")
 						.withGroup("MDEntries", FixMessagePatternBuilder.GroupElementSelector.anyElement()

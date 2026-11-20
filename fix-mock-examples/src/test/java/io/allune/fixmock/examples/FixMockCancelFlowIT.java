@@ -50,10 +50,11 @@ public class FixMockCancelFlowIT {
 
 	@Test
 	void cancel_flow_returns_new_then_canceled() throws Exception {
-		int port = 9916;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// ER NEW response for NOS
 		ExecutionReport erNew = new ExecutionReport(
@@ -85,14 +86,13 @@ public class FixMockCancelFlowIT {
 		assertEquals(ExecType.CANCELED, ers.get(1).getChar(ExecType.FIELD));
 	}
 
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 

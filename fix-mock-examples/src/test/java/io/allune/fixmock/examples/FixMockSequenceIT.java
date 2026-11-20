@@ -45,10 +45,11 @@ public class FixMockSequenceIT {
 
 	@Test
 	void sequence_returns_new_then_partial_for_two_orders() throws Exception {
-		int port = 9912;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Build two ER responses: NEW, then PARTIAL
 		ExecutionReport erNew = new ExecutionReport(
@@ -82,14 +83,13 @@ public class FixMockSequenceIT {
 		assertEquals(ExecType.PARTIAL_FILL, ers.get(1).getChar(ExecType.FIELD));
 	}
 
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 

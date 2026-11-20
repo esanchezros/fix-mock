@@ -29,6 +29,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,7 +44,7 @@ public class FixMockRecordingIT {
 
 	@Test
 	void should_record_conversation_and_export_stubs() throws Exception {
-		int port = 9950;
+		int port = 0;
 		
 		// Start server with CAPTURE enabled
 		FixMockServerOptions options = FixMockServerOptions.builder()
@@ -55,6 +57,7 @@ public class FixMockRecordingIT {
 		
 		server = new SimpleFixMockServer(options);
 		server.start();
+		port = server.getPort();
 
 		// Stub a response so there's something to record as outbound
 		ExecutionReport er = new ExecutionReport(
@@ -66,9 +69,9 @@ public class FixMockRecordingIT {
 				.willReturn(io.allune.fixmock.FixMock.respondWith(er)));
 
 		// Initiator sends a NOS
-		initiator = startInitiator("CLIENT", "BROKER", port, "AAPL");
-		assertTrue(((SimpleFixMockServer) server).awaitLogon(java.time.Duration.ofSeconds(5)), "Should log on");
-		Thread.sleep(1000);
+		RecordingApp app = new RecordingApp("AAPL");
+		initiator = startInitiator(app, "CLIENT", "BROKER", port);
+		assertNotNull(app.awaitAppMessage(5, TimeUnit.SECONDS), "Expected recorded response");
 
 		// Retrieve recorded stubs
 		List<StubMapping> recorded = server.getRecordedStubs();
@@ -85,7 +88,7 @@ public class FixMockRecordingIT {
 		// For now, simple success is enough.
 	}
 
-	private static Initiator startInitiator(String sender, String target, int port, String symbol) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = new SessionSettings();
 		Properties defaults = new Properties();
 		defaults.setProperty(SessionFactory.SETTING_CONNECTION_TYPE, "initiator");
@@ -101,29 +104,42 @@ public class FixMockRecordingIT {
 		settings.setString(sessionID, SocketInitiator.SETTING_SOCKET_CONNECT_HOST, "127.0.0.1");
 		settings.setString(sessionID, SocketInitiator.SETTING_SOCKET_CONNECT_PORT, Integer.toString(port));
 
-		Application app = new Application() {
-			@Override public void onCreate(SessionID sessionId) {}
-			@Override public void onLogon(SessionID sessionId) {
-				try {
-					NewOrderSingle nos = new NewOrderSingle(
-							new ClOrdID(UUID.randomUUID().toString()),
-							new Side(Side.BUY),
-							new TransactTime(LocalDateTime.now()),
-							new OrdType(OrdType.MARKET)
-					);
-					nos.set(new Symbol(symbol));
-					Session.sendToTarget(nos, sessionId);
-				} catch (Exception ignored) {}
-			}
-			@Override public void onLogout(SessionID sessionId) {}
-			@Override public void toAdmin(Message message, SessionID sessionId) {}
-			@Override public void fromAdmin(Message message, SessionID sessionId) {}
-			@Override public void toApp(Message message, SessionID sessionId) {}
-			@Override public void fromApp(Message message, SessionID sessionId) {}
-		};
-
 		Initiator initiator = new SocketInitiator(app, new MemoryStoreFactory(), settings, new ScreenLogFactory(true, true, true), new DefaultMessageFactory());
 		initiator.start();
 		return initiator;
+	}
+
+	static class RecordingApp implements Application {
+		private final String symbol;
+		private final CountDownLatch appLatch = new CountDownLatch(1);
+		private volatile Message lastAppMessage;
+
+		RecordingApp(String symbol) { this.symbol = symbol; }
+
+		Message awaitAppMessage(long timeout, TimeUnit unit) throws InterruptedException {
+			return appLatch.await(timeout, unit) ? lastAppMessage : null;
+		}
+
+		@Override public void onCreate(SessionID sessionId) {}
+		@Override public void onLogon(SessionID sessionId) {
+			try {
+				NewOrderSingle nos = new NewOrderSingle(
+						new ClOrdID(UUID.randomUUID().toString()),
+						new Side(Side.BUY),
+						new TransactTime(LocalDateTime.now()),
+						new OrdType(OrdType.MARKET)
+				);
+				nos.set(new Symbol(symbol));
+				Session.sendToTarget(nos, sessionId);
+			} catch (Exception ignored) {}
+		}
+		@Override public void onLogout(SessionID sessionId) {}
+		@Override public void toAdmin(Message message, SessionID sessionId) {}
+		@Override public void fromAdmin(Message message, SessionID sessionId) {}
+		@Override public void toApp(Message message, SessionID sessionId) {}
+		@Override public void fromApp(Message message, SessionID sessionId) {
+			lastAppMessage = message;
+			appLatch.countDown();
+		}
 	}
 }

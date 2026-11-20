@@ -53,10 +53,11 @@ public class FixMockOrderLifecycleIT {
 
 	@Test
 	void order_lifecycle_progresses_new_partial_fill_across_three_orders() throws Exception {
-		int port = 9915;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Prepare three ER responses: NEW, PARTIAL, FILL
 		ExecutionReport erNew = new ExecutionReport(
@@ -96,14 +97,13 @@ public class FixMockOrderLifecycleIT {
 		assertEquals(ExecType.FILL, ers.get(2).getChar(ExecType.FIELD));
 	}
 
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 

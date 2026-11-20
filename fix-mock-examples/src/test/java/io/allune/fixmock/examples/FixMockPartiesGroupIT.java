@@ -23,6 +23,7 @@ import quickfix.*;
 import quickfix.field.*;
 import quickfix.fix44.NewOrderSingle;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.UUID;
@@ -43,7 +44,7 @@ public class FixMockPartiesGroupIT {
 
 	@Test
 	void verifies_parties_group_contains_expected_partyid() throws Exception {
-		int port = 9935;
+		int port = 0;
 		FixMockServerOptions options = FixMockServerOptions.builder()
 				.beginString("FIX.4.4")
 				.senderCompId("BROKER")
@@ -54,6 +55,7 @@ public class FixMockPartiesGroupIT {
 		server = new SimpleFixMockServer(options);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Initiator app that sends a NOS with Parties group on logon
 		Application app = new PartiesNosOnLogon("CLIENT-XYZ");
@@ -63,12 +65,13 @@ public class FixMockPartiesGroupIT {
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		// Allow time for logon and app message to be sent
-		Thread.sleep(1500);
+
+		server.awaitMessage(appMessageRequestedFor().messageType("D"), Duration.ofSeconds(5));
 
 		// Verify Parties group contains PartyID(448)=CLIENT-XYZ via group selector (name-aware)
 		server.verify(
 				atLeast(1),
+				within(Duration.ofSeconds(5)),
 				appMessageRequestedFor()
 						.messageType("D")
 						.withGroup("Parties", FixMessagePatternBuilder.GroupElementSelector.anyElement()

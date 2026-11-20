@@ -43,10 +43,11 @@ public class FixMockDisconnectIT {
 
 	@Test
 	void stub_disconnect_after_match_triggers_client_logout() throws Exception {
-		int port = 9911;
+		int port = 0;
 		server = new SimpleFixMockServer("FIX.4.4", "BROKER", "CLIENT", port);
 		server.start();
 		assertTrue(server.isRunning());
+		port = server.getPort();
 
 		// Any NOS => disconnect without sending a response
 		server.stubFor(when(
@@ -60,14 +61,13 @@ public class FixMockDisconnectIT {
 		assertTrue(app.awaitLogout(5, TimeUnit.SECONDS), "Expected client to be disconnected by stub");
 	}
 
-	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError, InterruptedException {
+	private static Initiator startInitiator(Application app, String sender, String target, int port) throws ConfigError {
 		SessionSettings settings = initiatorSettings(sender, target, port);
 		MessageStoreFactory storeFactory = new MemoryStoreFactory();
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();
 		Initiator initiator = new SocketInitiator(app, storeFactory, settings, logFactory, messageFactory);
 		initiator.start();
-		Thread.sleep(500);
 		return initiator;
 	}
 
